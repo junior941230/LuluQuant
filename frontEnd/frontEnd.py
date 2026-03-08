@@ -1,7 +1,7 @@
 from UI.UImainWindow import Ui_MainWindow
 from PySide6.QtWidgets import QMainWindow,QButtonGroup
 import pyqtgraph as pg  
-from frontEnd.graph import CandlestickItem
+from frontEnd.graph import CandlestickItem,StrategyItem,DateAxisItem
 from backEnd.backend import Backtest ,TransformPrice
 
 class MainWindowController(QMainWindow):
@@ -11,11 +11,16 @@ class MainWindowController(QMainWindow):
         self.ui.setupUi(self)
         self.ApiHandle = Backtest()
         self.startDate = "1994-10-01"
+        self.dateStrings = [] # 用於儲存當前數據的日期對應表
 
+        self.dateAxis = DateAxisItem(dates=self.dateStrings, orientation='bottom')
         self.canvas = pg.GraphicsLayoutWidget()
         self.ui.chartLayout.addWidget(self.canvas)
-
-        self.plotItem = self.canvas.addPlot(title="股市數據模擬")
+        # 重要：在 addPlot 時指定 axisItems
+        self.plotItem = self.canvas.addPlot(
+            title="股市數據模擬", 
+            axisItems={'bottom': self.dateAxis}
+        )
         self.plotItem.showGrid(x=True, y=True)
         
         self.ui.UserInStartBackTest.clicked.connect(self.runBackTest)
@@ -37,7 +42,8 @@ class MainWindowController(QMainWindow):
         stockData = self.ApiHandle.getData(stockId=stockid, startDate=startDate, endDate=endDate)
         self.ApiHandle.runSimulation(stockData, traderFund=traderFund, feeRate=fee)
         maxDropDown,tradeNum,tradingHistory = self.ApiHandle.processResult()
-        
+        strategyItem = StrategyItem(stockData, tradingHistory)
+        self.plotItem.addItem(strategyItem)
 
     def graphPlot(self):
         self.plotItem.clear()
@@ -52,5 +58,11 @@ class MainWindowController(QMainWindow):
         endDate = self.ui.UserInEndDate.text()
         stockData = self.ApiHandle.getData(stockId=stockid, startDate=self.startDate, endDate=endDate)
         stockData = TransformPrice(stockData,period)
+        stockData = stockData.reset_index(drop=True)
+        # 更新 DateAxisItem 裡面的日期清單
+        # 假設你的 stockData 裡面有 'date' 欄位
+        self.dateStrings = stockData['date'].dt.strftime('%Y-%m-%d').tolist()
+        self.dateAxis.dates = self.dateStrings 
+
         candlestickItem = CandlestickItem(stockData)
         self.plotItem.addItem(candlestickItem)
