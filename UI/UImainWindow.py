@@ -15,10 +15,10 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
     QFont, QFontDatabase, QGradient, QIcon,
     QImage, QKeySequence, QLinearGradient, QPainter,
     QPalette, QPixmap, QRadialGradient, QTransform)
-from PySide6.QtWidgets import (QApplication, QDateEdit, QDoubleSpinBox, QLabel,
-    QLineEdit, QMainWindow, QMenuBar, QPushButton,
-    QSizePolicy, QSpinBox, QStatusBar, QVBoxLayout,
-    QWidget)
+from PySide6.QtWidgets import (QApplication, QDateEdit, QDoubleSpinBox, QHBoxLayout,
+    QLabel, QLineEdit, QMainWindow, QMenuBar,
+    QPushButton, QRadioButton, QSizePolicy, QSpinBox,
+    QStatusBar, QVBoxLayout, QWidget)
 
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
@@ -29,7 +29,7 @@ class Ui_MainWindow(object):
         self.centralwidget.setObjectName(u"centralwidget")
         self.verticalLayoutWidget = QWidget(self.centralwidget)
         self.verticalLayoutWidget.setObjectName(u"verticalLayoutWidget")
-        self.verticalLayoutWidget.setGeometry(QRect(150, 0, 1761, 1031))
+        self.verticalLayoutWidget.setGeometry(QRect(160, 30, 1751, 1001))
         self.chartLayout = QVBoxLayout(self.verticalLayoutWidget)
         self.chartLayout.setObjectName(u"chartLayout")
         self.chartLayout.setContentsMargins(0, 0, 0, 0)
@@ -108,6 +108,34 @@ class Ui_MainWindow(object):
 
         self.verticalLayout.addWidget(self.UserInStartBackTest)
 
+        self.horizontalLayoutWidget = QWidget(self.centralwidget)
+        self.horizontalLayoutWidget.setObjectName(u"horizontalLayoutWidget")
+        self.horizontalLayoutWidget.setGeometry(QRect(160, 0, 161, 31))
+        self.CandleMode = QHBoxLayout(self.horizontalLayoutWidget)
+        self.CandleMode.setObjectName(u"CandleMode")
+        self.CandleMode.setContentsMargins(0, 0, 0, 0)
+        self.UserInDayCandleMode = QRadioButton(self.horizontalLayoutWidget)
+        self.UserInDayCandleMode.setObjectName(u"UserInDayCandleMode")
+        font = QFont()
+        font.setPointSize(12)
+        font.setBold(True)
+        self.UserInDayCandleMode.setFont(font)
+        self.UserInDayCandleMode.setChecked(True)
+
+        self.CandleMode.addWidget(self.UserInDayCandleMode)
+
+        self.UserInWeekCandleMode = QRadioButton(self.horizontalLayoutWidget)
+        self.UserInWeekCandleMode.setObjectName(u"UserInWeekCandleMode")
+        self.UserInWeekCandleMode.setFont(font)
+
+        self.CandleMode.addWidget(self.UserInWeekCandleMode)
+
+        self.UserInMonthCandleMode = QRadioButton(self.horizontalLayoutWidget)
+        self.UserInMonthCandleMode.setObjectName(u"UserInMonthCandleMode")
+        self.UserInMonthCandleMode.setFont(font)
+
+        self.CandleMode.addWidget(self.UserInMonthCandleMode)
+
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QMenuBar(MainWindow)
         self.menubar.setObjectName(u"menubar")
@@ -133,5 +161,8 @@ class Ui_MainWindow(object):
         self.label_3.setText(QCoreApplication.translate("MainWindow", u"\u7d50\u675f\u65e5\u671f", None))
         self.UserInEndDate.setDisplayFormat(QCoreApplication.translate("MainWindow", u"yyyy-M-d", None))
         self.UserInStartBackTest.setText(QCoreApplication.translate("MainWindow", u"\u958b\u59cb\u56de\u6e2c", None))
+        self.UserInDayCandleMode.setText(QCoreApplication.translate("MainWindow", u"\u5929", None))
+        self.UserInWeekCandleMode.setText(QCoreApplication.translate("MainWindow", u"\u5468", None))
+        self.UserInMonthCandleMode.setText(QCoreApplication.translate("MainWindow", u"\u6708", None))
     # retranslateUi
 

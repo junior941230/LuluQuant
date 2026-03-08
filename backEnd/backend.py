@@ -5,6 +5,54 @@ import backtrader as bt
 import pandas as pd
 import os
 
+def FinMindDataToBacktrader(rawDf):
+    stockData = rawDf.rename(columns={
+        "max": "high",
+        "min": "low",
+        "Trading_Volume": "volume"
+    })
+    # 將 date 欄位轉換為時間物件，並設定為 Index
+    stockData["date"] = pd.to_datetime(stockData["date"])
+    stockData = stockData.set_index("date")
+    # 剔除不必要的欄位 (如 stock_id, Trading_money 等)，只保留開高低收與成交量
+    # 並確保資料型態為浮點數，避免 Backtrader 運算報錯
+    columnsToKeep = ["open", "high", "low", "close", "volume"]
+    cleanData = stockData[columnsToKeep].astype(float)
+    return bt.feeds.PandasData(dataname=cleanData)
+
+def TransformPrice(df,period):
+    df['date'] = pd.to_datetime(df['date'])
+    df = df.set_index('date')
+    # 3. 轉換為每週資料 (Weekly)
+    # 我們對不同欄位採用不同的計算方式
+    if period == "W":
+        df = df.resample('W').agg({
+            'stock_id': 'first',             # 股票代碼維持不變
+            'Trading_Volume': 'sum',         # 成交量加總
+            'Trading_money': 'sum',          # 成交金額加總
+            'open': 'first',                  # 開盤價取該週的第一個交易日
+            'max': 'max',         # 週最高價：該週最大值
+            'min': 'min',         # 週最低價：該週最小值
+            'close': 'last',      # 週收盤價：該週最後一筆
+            'spread': 'sum',      # 漲跌：通常週漲跌是週收盤減掉前週收盤，這裡暫用加總
+            'Trading_turnover': 'sum' # 成交筆數：總和
+        })
+    elif period == "M":
+    # 4. 轉換為每月資料 (Monthly)
+        df = df.resample('ME').agg({
+            'stock_id': 'first',
+            'Trading_Volume': 'sum',
+            'Trading_money': 'sum',
+            'open': 'first',
+            'max': 'max',         # 週最高價：該週最大值
+            'min': 'min',         # 週最低價：該週最小值
+            'close': 'last',      # 週收盤價：該週最後一筆
+            'spread': 'sum',      # 漲跌：通常週漲跌是週收盤減掉前週收盤，這裡暫用加總
+            'Trading_turnover': 'sum' # 成交筆數：總和
+        })
+
+    return df.reset_index()
+
 class FinMindApi:
     def __init__(self):
         try:
@@ -56,39 +104,25 @@ class FinMindApi:
         print("沒有找到快取資料，將從 API 取得")
         return None
 
-    def FinMindDataToBacktrader(self,rawDf):
-        stockData = rawDf.rename(columns={
-            "max": "high",
-            "min": "low",
-            "Trading_Volume": "volume"
-        })
-        # 將 date 欄位轉換為時間物件，並設定為 Index
-        stockData["date"] = pd.to_datetime(stockData["date"])
-        stockData = stockData.set_index("date")
-        # 剔除不必要的欄位 (如 stock_id, Trading_money 等)，只保留開高低收與成交量
-        # 並確保資料型態為浮點數，避免 Backtrader 運算報錯
-        columnsToKeep = ["open", "high", "low", "close", "volume"]
-        cleanData = stockData[columnsToKeep].astype(float)
-        return bt.feeds.PandasData(dataname=cleanData)
+    
+
 
 class Backtest(FinMindApi):
     def __init__(self):
         super().__init__()
-        self.fee = 0.001425  # 假設的交易費用率，可以根據實際情況調整
         self.result = None
 
     # 修正：傳入動態參數
-    def runSimulation(self, stockId, startDate, endDate, traderFund):
+    def runSimulation(self, data,traderFund,feeRate):
         self.traderFund = traderFund
         cerebro = bt.Cerebro()
-        data = self.getBacktestData(stockId, startDate, endDate)       
         data = self.FinMindDataToBacktrader(data) 
         cerebro.adddata(data)
         cerebro.addstrategy(RSI_WR_AND)
         cerebro.addanalyzer(bt.analyzers.DrawDown, _name="drawdown")
         cerebro.addanalyzer(bt.analyzers.TradeAnalyzer, _name='tradeStats')
         cerebro.broker.setcash(traderFund)
-        cerebro.broker.setcommission(commission=0.001425)
+        cerebro.broker.setcommission(commission=feeRate)
         self.result = cerebro.run()
         self.finalProfit = cerebro.broker.getvalue()
         self.cerebro = cerebro
