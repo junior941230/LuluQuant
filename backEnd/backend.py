@@ -1,6 +1,6 @@
 from FinMind.data import DataLoader
 import json
-from backEnd.stragegy import MaCross,RSI_WR_AND
+from backEnd.stragegy import MaCross,RSI_WR_AND,TradeRecorder
 import backtrader as bt
 import pandas as pd
 import os
@@ -116,11 +116,12 @@ class Backtest(FinMindApi):
     def runSimulation(self, data,traderFund,feeRate):
         self.traderFund = traderFund
         cerebro = bt.Cerebro()
-        data = self.FinMindDataToBacktrader(data) 
+        data = FinMindDataToBacktrader(data) 
         cerebro.adddata(data)
         cerebro.addstrategy(RSI_WR_AND)
         cerebro.addanalyzer(bt.analyzers.DrawDown, _name="drawdown")
         cerebro.addanalyzer(bt.analyzers.TradeAnalyzer, _name='tradeStats')
+        cerebro.addanalyzer(TradeRecorder, _name='myRecorder')
         cerebro.broker.setcash(traderFund)
         cerebro.broker.setcommission(commission=feeRate)
         self.result = cerebro.run()
@@ -130,11 +131,6 @@ class Backtest(FinMindApi):
     def processResult(self):
         firstStrategyResult = self.result[0]
         drawdownData = firstStrategyResult.analyzers.drawdown.get_analysis()
-        print(f"最大回撤: {drawdownData.max.drawdown}%")
         tradeAnalysis = firstStrategyResult.analyzers.tradeStats.get_analysis()
-        # 印出總共完成(已平倉)的交易次數，這等同於你的總賣單數
-        totalClosedTrades = tradeAnalysis.total.closed
-        print(f"總共完成的交易次數 (平倉/賣出): {totalClosedTrades}")
-        print(f"最終資產淨值: {self.finalProfit}")
-        print(f"總損益: {(self.finalProfit - self.traderFund)/self.traderFund * 100:.2f}%")
-        # self.cerebro.plot()
+        finalTrades = firstStrategyResult.analyzers.myRecorder.get_analysis()
+        return drawdownData.max.drawdown,tradeAnalysis.total.closed,finalTrades

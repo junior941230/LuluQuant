@@ -36,6 +36,7 @@ class MainWindowController(QMainWindow):
         fee = float(self.ui.UserInFee.text()) *0.01
         stockData = self.ApiHandle.getData(stockId=stockid, startDate=startDate, endDate=endDate)
         self.ApiHandle.runSimulation(stockData, traderFund=traderFund, feeRate=fee)
+        maxDropDown,tradeNum,tradingHistory = self.ApiHandle.processResult()
         
 
     def graphPlot(self):
