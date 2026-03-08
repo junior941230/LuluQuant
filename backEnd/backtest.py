@@ -1,8 +1,9 @@
 from FinMind.data import DataLoader
 import json
-from stragegy import MaCross,RSI_WR_AND
+from backEnd.stragegy import MaCross,RSI_WR_AND
 import backtrader as bt
 import pandas as pd
+import os
 
 class FinMindApi:
     def __init__(self):
@@ -24,14 +25,37 @@ class FinMindApi:
         if(self.api.api_usage >= self.api.api_usage_limit *0.9):
             print("API 次數已達90%，請注意使用量！")
 
-    def getBacktestData(self, stockId, startDate, endDate):
+    def getData(self, stockId, startDate, endDate):
+        if not os.path.exists("cache"):
+            os.makedirs("cache")
+        cachedData = self.findCacheData(stockId, startDate, endDate)
+        if cachedData is not None:
+            return cachedData
         rawDf = self.api.taiwan_stock_daily(
             stock_id=stockId,
             start_date=startDate,
             end_date=endDate
         )
+        rawDf.to_pickle(f"cache/{stockId}_{startDate}_{endDate}.pkl")
         return rawDf 
     
+    def findCacheData(self, stockId, startDate, endDate):
+        files = os.listdir("cache")
+        for file in files:
+            endDateInFile = file.split("_")[-1].split(".")[0]
+            startDateInFile = file.split("_")[1]
+            if f"{stockId}" in file:
+                # 檔案的日期範圍包含了使用者要求的日期範圍，才算找到快取資料
+                if endDateInFile >= endDate and startDateInFile <= startDate:
+                    cachedData = pd.read_pickle(f"cache/{file}")
+                    print("找到快取資料，直接使用")
+                    # 轉換 date 欄位為 datetime 格式，才能使用 between 方法過濾日期範圍
+                    cachedData['date'] = pd.to_datetime(cachedData['date'])
+                    filteredDf = cachedData[cachedData['date'].between(startDate, endDate)]
+                    return filteredDf
+        print("沒有找到快取資料，將從 API 取得")
+        return None
+
     def FinMindDataToBacktrader(self,rawDf):
         stockData = rawDf.rename(columns={
             "max": "high",
