@@ -125,3 +125,113 @@ class RSI_WR_AND(bt.Strategy):
         # 如果訂單被拒絕、取消或保證金不足 (這就是你遇到的狀況)
         elif order.status in [order.Canceled, order.Margin, order.Rejected]:
             print("警告：訂單被拒絕或資金不足！")
+class GapStrategy(bt.Strategy):
+    params = (
+        ('tradeValue', 500000),
+    )
+
+    def __init__(self):
+        # 今天開盤 > 昨天收盤 → 買進條件
+        self.buyCondition = self.data.open > self.data.close(-1)
+
+        # 今天開盤 < 昨天收盤 → 賣出條件
+        self.sellCondition = self.data.open < self.data.close(-1)
+
+    def next(self):
+        # 目前帳戶總資產
+        currentEquity = self.broker.getvalue()
+
+        # 如果目前沒有持倉
+        if not self.position:
+            if self.buyCondition[0]:
+                # 實際投入金額 = tradeValue 與 資產95% 取較小者
+                actualInvestValue = min(self.params.tradeValue, currentEquity * 0.95)
+
+                # 根據目標金額自動換算股數下單
+                self.order_target_value(target=actualInvestValue)
+
+        # 如果目前有持倉
+        else:
+            if self.sellCondition[0]:
+                self.close()
+
+    def notify_order(self, order):
+        # 如果訂單只是送出或被接受，先不處理
+        if order.status in [order.Submitted, order.Accepted]:
+            return
+
+        # 如果訂單成交
+        if order.status in [order.Completed]:
+            if order.isbuy():
+                print(
+                    f"買單執行: 價格 {order.executed.price}, "
+                    f"成本 {order.executed.value}, "
+                    f"手續費 {order.executed.comm}, "
+                    f"日期 {self.data.datetime.date(0)}"
+                )
+            elif order.issell():
+                print(
+                    f"賣單執行: 價格 {order.executed.price}, "
+                    f"成本 {order.executed.value}, "
+                    f"手續費 {order.executed.comm}, "
+                    f"日期 {self.data.datetime.date(0)}"
+                )
+
+        # 如果訂單被取消、拒絕、或資金不足
+        elif order.status in [order.Canceled, order.Margin, order.Rejected]:
+            print(f"警告：訂單被拒絕、取消或資金不足！日期 {self.data.datetime.date(0)}")
+import backtrader as bt
+
+class BB_TrailingStop(bt.Strategy):
+    params = (
+        ('period', 20),      # 布林通道週期
+        ('devfactor', 2.0),  # 標準差倍數
+        ('tradeValue', 500000),
+    )
+
+    def __init__(self):
+        # 初始化布林通道指標
+        self.bb = bt.indicators.BollingerBands(self.data.close, 
+                                                period=self.params.period, 
+                                                devfactor=self.params.devfactor)
+        # 用來記錄當前的動態止損價
+        self.stop_price = None
+
+    def next(self):
+        currentEquity = self.broker.getvalue()
+        
+        # 1. 如果目前沒有持倉：找尋進場點
+        if not self.position:
+            # 進場邏輯範例：收盤價突破布林上軌（強勢突破）
+            if self.data.close[0] > self.bb.lines.top[0]:
+                actualInvestValue = min(self.params.tradeValue, currentEquity * 0.95)
+                self.order_target_value(target=actualInvestValue)
+                # 進場時，初步止損可以設在下軌或前低，這裡我們先設為 None 等待站上中軌
+                self.stop_price = None
+        
+        # 2. 如果目前有持倉：執行移動止損邏輯
+        else:
+            # 依照你的需求：如果站上 BB 中軌，就將該處設為止損點
+            # 我們取「當前中軌值」與「過去已紀錄止損價」的最大值，確保止損點只會上移不會下移
+            current_mid = self.bb.lines.mid[0]
+            
+            if self.data.close[0] > current_mid:
+                if self.stop_price is None:
+                    self.stop_price = current_mid
+                else:
+                    self.stop_price = max(self.stop_price, current_mid)
+
+            # 出場判斷：如果止損點已建立，且收盤價跌破止損點
+            if self.stop_price is not None and self.data.close[0] < self.stop_price:
+                self.close()
+                self.stop_price = None # 出場後重置止損價
+
+    def notify_order(self, order):
+        # 沿用你原本的通知邏輯
+        if order.status in [order.Submitted, order.Accepted]:
+            return
+        if order.status in [order.Completed]:
+            verb = "買進" if order.isbuy() else "賣出"
+            print(f"{verb}執行: 價格 {order.executed.price}, 日期 {self.data.datetime.date(0)}")
+        elif order.status in [order.Canceled, order.Margin, order.Rejected]:
+            print(f"警告：訂單失敗！日期 {self.data.datetime.date(0)}")

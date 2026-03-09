@@ -1,4 +1,4 @@
-from backtest import Backtest
+from backend import Backtest
 backtest = Backtest()
 stockId = "3481"
 startStr = "2006-10-24"

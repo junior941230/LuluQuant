@@ -1,6 +1,6 @@
 from FinMind.data import DataLoader
 import json
-from backEnd.stragegy import MaCross,RSI_WR_AND,TradeRecorder
+from backEnd.stragegy import MaCross,RSI_WR_AND,TradeRecorder,GapStrategy
 import backtrader as bt
 import pandas as pd
 import os
@@ -118,7 +118,7 @@ class Backtest(FinMindApi):
         cerebro = bt.Cerebro()
         data = FinMindDataToBacktrader(data) 
         cerebro.adddata(data)
-        cerebro.addstrategy(RSI_WR_AND)
+        cerebro.addstrategy(GapStrategy)
         cerebro.addanalyzer(bt.analyzers.DrawDown, _name="drawdown")
         cerebro.addanalyzer(bt.analyzers.TradeAnalyzer, _name='tradeStats')
         cerebro.addanalyzer(TradeRecorder, _name='myRecorder')
