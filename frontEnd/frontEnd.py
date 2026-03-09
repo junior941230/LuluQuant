@@ -1,9 +1,11 @@
 from UI.UImainWindow import Ui_MainWindow
-from PyQt6.QtWidgets import QMainWindow, QButtonGroup
+from PyQt6.QtWidgets import QMainWindow, QButtonGroup, QLineEdit, QCompleter
+from PyQt6.QtGui import QAction, QIcon
+from PyQt6.QtCore import Qt
 import pyqtgraph as pg
 from frontEnd.graph import CandlestickItem, StrategyItem, DateAxisItem
-from backEnd.backend import Backtest, TransformPrice
-from backEnd.strategyEditor import PythonEditor
+from backEnd.backend import Backtest, TransformPrice, findAllStrategys, loadStrategysFile
+from frontEnd.strategyCodeBlock import PythonEditor
 
 
 class MainWindowController(QMainWindow):
@@ -14,7 +16,10 @@ class MainWindowController(QMainWindow):
         self.ApiHandle = Backtest()
         self.startDate = "1994-10-01"
         self.dateStrings = []  # 用於儲存當前數據的日期對應表
+        self.candlePlotInit()
+        self.codeBlockInit()
 
+    def candlePlotInit(self):
         self.dateAxis = DateAxisItem(
             dates=self.dateStrings, orientation='bottom')
         self.canvas = pg.GraphicsLayoutWidget()
@@ -47,8 +52,30 @@ class MainWindowController(QMainWindow):
         # 預先畫好標的歷史圖表
         self.graphPlot()
 
+    def codeBlockInit(self):
         self.codeBlock = PythonEditor()
         self.ui.codeLayout.addWidget(self.codeBlock)
+        self.ui.StrategySerchingBar.setClearButtonEnabled(True)
+        searchAction = QAction(self.ui.StrategySerchingBar)
+        searchAction.setIcon(QIcon.fromTheme("edit-find"))  # 使用系統內建圖示
+        self.ui.StrategySerchingBar.addAction(
+            searchAction, QLineEdit.ActionPosition.LeadingPosition)
+
+        self.ui.StrategySerchingBar.textChanged.connect(self.onTextChanged)
+
+    def updateCodeBlockSerchingcompleter(self):
+        completer = QCompleter(findAllStrategys())
+        completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
+        completer.setFilterMode(Qt.MatchFlag.MatchContains)
+        self.ui.StrategySerchingBar.setCompleter(completer)
+
+    def onTextChanged(self):
+        self.updateCodeBlockSerchingcompleter()
+        searchTerm = self.ui.StrategySerchingBar.text()
+        if searchTerm in findAllStrategys():
+            content = loadStrategysFile(searchTerm)
+            if content != None:
+                self.codeBlock.setText(content)
 
     def runBackTest(self):
         stockid = self.ui.UserInStockID.text()

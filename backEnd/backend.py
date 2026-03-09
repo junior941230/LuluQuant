@@ -6,6 +6,22 @@ import pandas as pd
 import os
 
 
+def findAllStrategys():
+    files = os.listdir("strategy")
+    return files
+
+
+def loadStrategysFile(filePath):
+    filePath = "strategy/" + filePath
+    try:
+        with open(filePath, "r", encoding="utf-8") as f:
+            fileContent = f.read()
+            return fileContent
+    except Exception as e:
+        print(f"讀取檔案失敗: {e}")
+        return None
+
+
 def FinMindDataToBacktrader(rawDf):
     stockData = rawDf.rename(columns={
         "max": "high",

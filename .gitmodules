@@ -1,0 +1,3 @@
+[submodule "strategy"]
+	path = strategy
+	url = https://github.com/junior941230/strategy
