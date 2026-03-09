@@ -13,13 +13,9 @@ def findAllStrategys():
 
 def loadStrategysFile(filePath):
     filePath = "strategy/" + filePath
-    try:
-        with open(filePath, "r", encoding="utf-8") as f:
-            fileContent = f.read()
-            return fileContent
-    except Exception as e:
-        print(f"讀取檔案失敗: {e}")
-        return None
+    with open(filePath, "r", encoding="utf-8") as f:
+        fileContent = f.read()
+    return fileContent
 
 
 def FinMindDataToBacktrader(rawDf):

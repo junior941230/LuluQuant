@@ -65,6 +65,7 @@ class PythonEditor(QsciScintilla):
         # 4. 微調間距 (視覺沈浸感關鍵)
         self.setExtraAscent(4)
         self.setExtraDescent(4)
+        self.setTabWidth(4)
 
         # 5. 移除外框線
         self.setFrameShape(QFrame.Shape.NoFrame)

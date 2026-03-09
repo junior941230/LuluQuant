@@ -231,9 +231,9 @@
       <property name="geometry">
        <rect>
         <x>130</x>
-        <y>10</y>
+        <y>40</y>
         <width>651</width>
-        <height>991</height>
+        <height>961</height>
        </rect>
       </property>
       <layout class="QVBoxLayout" name="codeLayout"/>
@@ -244,7 +244,7 @@
         <x>0</x>
         <y>10</y>
         <width>121</width>
-        <height>51</height>
+        <height>69</height>
        </rect>
       </property>
       <layout class="QVBoxLayout" name="verticalLayout_2">
@@ -257,6 +257,39 @@
        </item>
        <item>
         <widget class="QLineEdit" name="StrategySerchingBar"/>
+       </item>
+       <item>
+        <widget class="QPushButton" name="createNewStrategy">
+         <property name="text">
+          <string>新增策略</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="horizontalLayoutWidget_2">
+      <property name="geometry">
+       <rect>
+        <x>130</x>
+        <y>0</y>
+        <width>651</width>
+        <height>41</height>
+       </rect>
+      </property>
+      <layout class="QHBoxLayout" name="horizontalLayout">
+       <item>
+        <widget class="QPushButton" name="saveStrategy">
+         <property name="text">
+          <string>儲存策略</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="runStrategy">
+         <property name="text">
+          <string>執行策略</string>
+         </property>
+        </widget>
        </item>
       </layout>
      </widget>

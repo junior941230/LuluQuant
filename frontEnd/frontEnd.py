@@ -60,8 +60,9 @@ class MainWindowController(QMainWindow):
         searchAction.setIcon(QIcon.fromTheme("edit-find"))  # 使用系統內建圖示
         self.ui.StrategySerchingBar.addAction(
             searchAction, QLineEdit.ActionPosition.LeadingPosition)
-
+        self.updateCodeBlockSerchingcompleter()
         self.ui.StrategySerchingBar.textChanged.connect(self.onTextChanged)
+        self.ui.createNewStrategy.clicked.connect(self.createNewStrategy)
 
     def updateCodeBlockSerchingcompleter(self):
         completer = QCompleter(findAllStrategys())
@@ -69,10 +70,15 @@ class MainWindowController(QMainWindow):
         completer.setFilterMode(Qt.MatchFlag.MatchContains)
         self.ui.StrategySerchingBar.setCompleter(completer)
 
-    def onTextChanged(self):
+    def createNewStrategy(self):
         self.updateCodeBlockSerchingcompleter()
+        content = loadStrategysFile("custom")
+        self.codeBlock.setText(content)
+
+    def onTextChanged(self):
         searchTerm = self.ui.StrategySerchingBar.text()
-        if searchTerm in findAllStrategys():
+        files = findAllStrategys()
+        if searchTerm in files:
             content = loadStrategysFile(searchTerm)
             if content != None:
                 self.codeBlock.setText(content)

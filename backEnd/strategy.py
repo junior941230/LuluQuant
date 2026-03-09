@@ -1,5 +1,6 @@
 import backtrader as bt
 
+
 class TradeRecorder(bt.Analyzer):
     def __init__(self):
         self.trades = []
@@ -11,13 +12,14 @@ class TradeRecorder(bt.Analyzer):
     def get_analysis(self):
         return self.trades
 
+
 class MaCross(bt.Strategy):
     # 設定策略參數
     params = (
         ('fastPeriod', 5),
         ('slowPeriod', 20),
-        ('investPercent', 1.0), # 設定每次投入總資金的比例，此處為 90%
-        ('tradeValue',500000)
+        ('investPercent', 1.0),  # 設定每次投入總資金的比例，此處為 90%
+        ('tradeValue', 500000)
     )
 
     def __init__(self):
@@ -28,13 +30,14 @@ class MaCross(bt.Strategy):
         self.slowMa = bt.indicators.SMA(
             self.data.close, period=self.params.slowPeriod
         )
-        
+
         # 內建的交叉指標：1 代表上穿(黃金交叉)，-1 代表下穿(死亡交叉)
-        self.crossoverSignal = bt.indicators.CrossOver(self.fastMa, self.slowMa)
+        self.crossoverSignal = bt.indicators.CrossOver(
+            self.fastMa, self.slowMa)
 
     def next(self):
         # next 階段是核心，系統會逐根 K 線執行這裡的邏輯
-        
+
         # 實話實說：這裡你隨時可以印出 currentEquity 來觀察資金的動態變化
         currentEquity = self.broker.getvalue()
 
@@ -44,11 +47,12 @@ class MaCross(bt.Strategy):
             if self.crossoverSignal > 0:
                 # 動態下單：告訴系統目標是佔用帳戶總資金的 90%
                 # 系統會自動根據當下收盤價與帳戶總資金，精準算出能買幾股並下單
-                actualInvestValue = min(self.params.tradeValue, currentEquity * 0.95)
-            
+                actualInvestValue = min(
+                    self.params.tradeValue, currentEquity * 0.95)
+
                 # 直接讓系統根據安全金額換算股數下單
                 self.order_target_value(target=actualInvestValue)
-                
+
         # 如果目前有持倉
         else:
             # 發生死亡交叉
@@ -81,15 +85,18 @@ class RSI_WR_AND(bt.Strategy):
         ('sell_rsi_level', 80),
         ('wr_period', 14),
         ('wr_buy_level', 80),
-        ('tradeValue',500000)
+        ('tradeValue', 500000)
     )
 
     def __init__(self):
-        self.rsi6 = bt.indicators.RSI(self.data.close, period=self.params.fast_period)
-        self.rsi12 = bt.indicators.RSI(self.data.close, period=self.params.slow_period)
+        self.rsi6 = bt.indicators.RSI(
+            self.data.close, period=self.params.fast_period)
+        self.rsi12 = bt.indicators.RSI(
+            self.data.close, period=self.params.slow_period)
         self.rsi_diff = self.rsi6 - self.rsi12
         self.weakCondition = self.rsi_diff <= self.params.diff_threshold
-        self.wr = bt.indicators.WilliamsR(self.data, period=self.params.wr_period)
+        self.wr = bt.indicators.WilliamsR(
+            self.data, period=self.params.wr_period)
         self.wrCondition = self.wr < -self.params.wr_buy_level
 
     def next(self):
@@ -100,11 +107,12 @@ class RSI_WR_AND(bt.Strategy):
             if self.weakCondition[0] and self.wrCondition[0]:
                 # 動態下單：告訴系統目標是佔用帳戶總資金的 90%
                 # 系統會自動根據當下收盤價與帳戶總資金，精準算出能買幾股並下單
-                actualInvestValue = min(self.params.tradeValue, currentEquity * 0.95)
-            
+                actualInvestValue = min(
+                    self.params.tradeValue, currentEquity * 0.95)
+
                 # 直接讓系統根據安全金額換算股數下單
                 self.order_target_value(target=actualInvestValue)
-                
+
         # 如果目前有持倉
         else:
             if self.rsi6 >= self.params.sell_rsi_level or self.rsi6 < self.rsi12:
