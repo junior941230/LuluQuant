@@ -19,9 +19,15 @@ def loadStrategysFile(filePath):
 
 
 def saveStrategysFile(filePath, content):
-    filePath = "strategy/" + filePath + ".py"
+    filePath = "strategy/" + filePath
     with open(filePath, "w+", encoding="utf-8") as f:
         f.write(content)
+
+
+def runStrategy(filePath):
+    with open("backEnd/strategy.py", "r", encoding="utf-8") as f:
+        fileContent = f.read()
+    print(type(fileContent))
 
 
 def FinMindDataToBacktrader(rawDf):
