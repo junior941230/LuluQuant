@@ -114,7 +114,7 @@ class Ui_MainWindow(object):
         self.strategyTab = QtWidgets.QWidget()
         self.strategyTab.setObjectName("strategyTab")
         self.verticalLayoutWidget_3 = QtWidgets.QWidget(parent=self.strategyTab)
-        self.verticalLayoutWidget_3.setGeometry(QtCore.QRect(0, 0, 661, 1001))
+        self.verticalLayoutWidget_3.setGeometry(QtCore.QRect(10, 10, 651, 991))
         self.verticalLayoutWidget_3.setObjectName("verticalLayoutWidget_3")
         self.codeLayout = QtWidgets.QVBoxLayout(self.verticalLayoutWidget_3)
         self.codeLayout.setContentsMargins(0, 0, 0, 0)
