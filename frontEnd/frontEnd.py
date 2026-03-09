@@ -1,11 +1,12 @@
 from UI.UImainWindow import Ui_MainWindow
-from PyQt6.QtWidgets import QMainWindow, QButtonGroup, QLineEdit, QCompleter
+from PyQt6.QtWidgets import QMainWindow, QButtonGroup, QLineEdit, QCompleter, QDialog
 from PyQt6.QtGui import QAction, QIcon
 from PyQt6.QtCore import Qt
 import pyqtgraph as pg
 from frontEnd.graph import CandlestickItem, StrategyItem, DateAxisItem
-from backEnd.backend import Backtest, TransformPrice, findAllStrategys, loadStrategysFile
+from backEnd.backend import Backtest, TransformPrice, findAllStrategys, loadStrategysFile, saveStrategysFile
 from frontEnd.strategyCodeBlock import PythonEditor
+from frontEnd.saveStrategy import SaveStrategyDialog
 
 
 class MainWindowController(QMainWindow):
@@ -63,6 +64,8 @@ class MainWindowController(QMainWindow):
         self.updateCodeBlockSerchingcompleter()
         self.ui.StrategySerchingBar.textChanged.connect(self.onTextChanged)
         self.ui.createNewStrategy.clicked.connect(self.createNewStrategy)
+        self.ui.saveStrategy.clicked.connect(self.saveStrategy)
+        self.ui.runStrategy.clicked.connect(self.runStrategy)
 
     def updateCodeBlockSerchingcompleter(self):
         completer = QCompleter(findAllStrategys())
@@ -74,6 +77,15 @@ class MainWindowController(QMainWindow):
         self.updateCodeBlockSerchingcompleter()
         content = loadStrategysFile("custom")
         self.codeBlock.setText(content)
+
+    def saveStrategy(self):
+        dialog = SaveStrategyDialog()
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            userInput = dialog.getName()
+            saveStrategysFile(userInput, self.codeBlock.text())
+
+    def runStrategy(self):
+        pass
 
     def onTextChanged(self):
         searchTerm = self.ui.StrategySerchingBar.text()

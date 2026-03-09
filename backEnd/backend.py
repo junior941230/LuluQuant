@@ -18,6 +18,12 @@ def loadStrategysFile(filePath):
     return fileContent
 
 
+def saveStrategysFile(filePath, content):
+    filePath = "strategy/" + filePath + ".py"
+    with open(filePath, "w+", encoding="utf-8") as f:
+        f.write(content)
+
+
 def FinMindDataToBacktrader(rawDf):
     stockData = rawDf.rename(columns={
         "max": "high",
