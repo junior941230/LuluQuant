@@ -1,6 +1,6 @@
 from FinMind.data import DataLoader
 import json
-from backEnd.strategy import MaCross, RSI_WR_AND, TradeRecorder
+from backEnd.strategy import TradeRecorder
 import backtrader as bt
 import pandas as pd
 import os
@@ -24,10 +24,41 @@ def saveStrategysFile(filePath, content):
         f.write(content)
 
 
+def generateFullCode(targetFileName):
+    templatePath = "backEnd/strategy.py"
+    # 動態組合路徑，例如傳入 "myAlgo.py"
+    injectPath = os.path.join("strategy", targetFileName)
+    separator = "# insertCode"
+
+    # 1. 讀取模板
+    with open(templatePath, "r", encoding="utf-8") as f:
+        templateContent = f.read()
+
+    # 2. 檢查標記並分割
+    if separator not in templateContent:
+        raise ValueError(f"在 {templatePath} 中找不到 {separator}")
+
+    parts = templateContent.split(separator)
+    frontPart = parts[0]
+    backPart = parts[1]
+
+    # 3. 讀取動態指定的檔案
+    if not os.path.exists(injectPath):
+        print(f"錯誤：找不到檔案 {injectPath}")
+        return None
+
+    with open(injectPath, "r", encoding="utf-8") as f:
+        injectCode = f.read()
+    tabbedCode = textwrap.indent(injectCode, "    ")
+    # 4. 組合並回傳
+    fullCode = f"{frontPart}\n{separator}\n{tabbedCode}\n{backPart}"
+
+    with open("strategy/run.py", "w+", encoding="utf-8") as f:
+        f.write(fullCode)
+
+
 def runStrategy(filePath):
-    with open("backEnd/strategy.py", "r", encoding="utf-8") as f:
-        fileContent = f.read()
-    print(type(fileContent))
+    generateFullCode(filePath)
 
 
 def FinMindDataToBacktrader(rawDf):
@@ -144,7 +175,7 @@ class Backtest(FinMindApi):
         cerebro = bt.Cerebro()
         data = FinMindDataToBacktrader(data)
         cerebro.adddata(data)
-        cerebro.addstrategy(RSI_WR_AND)
+        # cerebro.addstrategy(RSI_WR_AND)
         cerebro.addanalyzer(bt.analyzers.DrawDown, _name="drawdown")
         cerebro.addanalyzer(bt.analyzers.TradeAnalyzer, _name='tradeStats')
         cerebro.addanalyzer(TradeRecorder, _name='myRecorder')
