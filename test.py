@@ -6,4 +6,4 @@ endStr = "2026-03-06"
 inputFund = 500000
 resultObj = backtest.runSimulation(stockId, startStr, endStr, inputFund)
 rawDf = backtest.processResult()
-#pyside6-uic  .\UI\UImainWindow.ui -o .\UI\UImainWindow.py
+# pyuic6 -x .\UI\UImainWindow.ui -o .\UI\UImainWindow.py

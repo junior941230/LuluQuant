@@ -1,9 +1,10 @@
 from FinMind.data import DataLoader
 import json
-from backEnd.stragegy import MaCross,RSI_WR_AND,TradeRecorder
+from backEnd.strategy import MaCross, RSI_WR_AND, TradeRecorder
 import backtrader as bt
 import pandas as pd
 import os
+
 
 def FinMindDataToBacktrader(rawDf):
     stockData = rawDf.rename(columns={
@@ -20,7 +21,8 @@ def FinMindDataToBacktrader(rawDf):
     cleanData = stockData[columnsToKeep].astype(float)
     return bt.feeds.PandasData(dataname=cleanData)
 
-def TransformPrice(df,period):
+
+def TransformPrice(df, period):
     df['date'] = pd.to_datetime(df['date'])
     df = df.set_index('date')
     # 3. 轉換為每週資料 (Weekly)
@@ -35,10 +37,10 @@ def TransformPrice(df,period):
             'min': 'min',         # 週最低價：該週最小值
             'close': 'last',      # 週收盤價：該週最後一筆
             'spread': 'sum',      # 漲跌：通常週漲跌是週收盤減掉前週收盤，這裡暫用加總
-            'Trading_turnover': 'sum' # 成交筆數：總和
+            'Trading_turnover': 'sum'  # 成交筆數：總和
         })
     elif period == "M":
-    # 4. 轉換為每月資料 (Monthly)
+        # 4. 轉換為每月資料 (Monthly)
         df = df.resample('ME').agg({
             'stock_id': 'first',
             'Trading_Volume': 'sum',
@@ -48,10 +50,11 @@ def TransformPrice(df,period):
             'min': 'min',         # 週最低價：該週最小值
             'close': 'last',      # 週收盤價：該週最後一筆
             'spread': 'sum',      # 漲跌：通常週漲跌是週收盤減掉前週收盤，這裡暫用加總
-            'Trading_turnover': 'sum' # 成交筆數：總和
+            'Trading_turnover': 'sum'  # 成交筆數：總和
         })
 
     return df.reset_index()
+
 
 class FinMindApi:
     def __init__(self):
@@ -68,9 +71,9 @@ class FinMindApi:
         self.apiUsageCheck()
         print("FinMind API 初始化完成")
         print(f"目前 API 使用量: {self.api.api_usage}/{self.api.api_usage_limit}")
-    
+
     def apiUsageCheck(self):
-        if(self.api.api_usage >= self.api.api_usage_limit *0.9):
+        if (self.api.api_usage >= self.api.api_usage_limit * 0.9):
             print("API 次數已達90%，請注意使用量！")
 
     def getData(self, stockId, startDate, endDate):
@@ -85,8 +88,8 @@ class FinMindApi:
             end_date=endDate
         )
         rawDf.to_pickle(f"cache/{stockId}_{startDate}_{endDate}.pkl")
-        return rawDf 
-    
+        return rawDf
+
     def findCacheData(self, stockId, startDate, endDate):
         files = os.listdir("cache")
         for file in files:
@@ -99,12 +102,11 @@ class FinMindApi:
                     print("找到快取資料，直接使用")
                     # 轉換 date 欄位為 datetime 格式，才能使用 between 方法過濾日期範圍
                     cachedData['date'] = pd.to_datetime(cachedData['date'])
-                    filteredDf = cachedData[cachedData['date'].between(startDate, endDate)]
+                    filteredDf = cachedData[cachedData['date'].between(
+                        startDate, endDate)]
                     return filteredDf
         print("沒有找到快取資料，將從 API 取得")
         return None
-
-    
 
 
 class Backtest(FinMindApi):
@@ -113,10 +115,10 @@ class Backtest(FinMindApi):
         self.result = None
 
     # 修正：傳入動態參數
-    def runSimulation(self, data,traderFund,feeRate):
+    def runSimulation(self, data, traderFund, feeRate):
         self.traderFund = traderFund
         cerebro = bt.Cerebro()
-        data = FinMindDataToBacktrader(data) 
+        data = FinMindDataToBacktrader(data)
         cerebro.adddata(data)
         cerebro.addstrategy(RSI_WR_AND)
         cerebro.addanalyzer(bt.analyzers.DrawDown, _name="drawdown")
@@ -133,4 +135,4 @@ class Backtest(FinMindApi):
         drawdownData = firstStrategyResult.analyzers.drawdown.get_analysis()
         tradeAnalysis = firstStrategyResult.analyzers.tradeStats.get_analysis()
         finalTrades = firstStrategyResult.analyzers.myRecorder.get_analysis()
-        return drawdownData.max.drawdown,tradeAnalysis.total.closed,finalTrades
+        return drawdownData.max.drawdown, tradeAnalysis.total.closed, finalTrades
