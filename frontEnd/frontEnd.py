@@ -79,10 +79,15 @@ class MainWindowController(QMainWindow):
         self.codeBlock.setText(content)
 
     def saveStrategy(self):
-        dialog = SaveStrategyDialog()
-        if dialog.exec() == QDialog.DialogCode.Accepted:
-            userInput = dialog.getName()
-            saveStrategysFile(userInput, self.codeBlock.text())
+        if self.ui.StrategySerchingBar.text() in findAllStrategys():
+            saveStrategysFile(
+                self.ui.StrategySerchingBar.text(), self.codeBlock.text())
+        else:
+            dialog = SaveStrategyDialog()
+            if dialog.exec() == QDialog.DialogCode.Accepted:
+                userInput = dialog.getName() + ".py"
+                saveStrategysFile(userInput, self.codeBlock.text())
+                self.ui.StrategySerchingBar.setText(userInput)
 
     def runStrategy(self):
         pass

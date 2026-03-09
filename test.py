@@ -1,9 +1,8 @@
-from backtest import Backtest
-backtest = Backtest()
-stockId = "3481"
-startStr = "2006-10-24"
-endStr = "2026-03-06"
-inputFund = 500000
-resultObj = backtest.runSimulation(stockId, startStr, endStr, inputFund)
-rawDf = backtest.processResult()
-# pyuic6 -x .\UI\UImainWindow.ui -o .\UI\UImainWindow.py
+with open("backEnd/strategy.py", "r", encoding="utf-8") as f:
+    fileContent = f.read()
+front = fileContent.split("# insertCode")[0]
+back = fileContent.split("# insertCode")[1]
+with open("strategy/test.py", "r", encoding="utf-8") as f:
+    fileContent = f.read()
+all = front + fileContent + back
+print(all)
