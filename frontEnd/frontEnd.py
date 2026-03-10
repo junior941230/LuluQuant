@@ -4,7 +4,7 @@ from PyQt6.QtGui import QAction, QIcon
 from PyQt6.QtCore import Qt
 import pyqtgraph as pg
 from frontEnd.graph import CandlestickItem, StrategyItem, DateAxisItem
-from backEnd.backend import Backtest, TransformPrice, findAllStrategys, loadStrategysFile, saveStrategysFile
+from backEnd.backend import Backtest, TransformPrice, findAllStrategys, loadStrategysFile, saveStrategysFile, runStrategy
 from frontEnd.strategyCodeBlock import PythonEditor
 from frontEnd.saveStrategy import SaveStrategyDialog
 
@@ -64,8 +64,8 @@ class MainWindowController(QMainWindow):
         self.updateCodeBlockSerchingcompleter()
         self.ui.StrategySerchingBar.textChanged.connect(self.onTextChanged)
         self.ui.createNewStrategy.clicked.connect(self.createNewStrategy)
-        self.ui.saveStrategy.clicked.connect(self.saveStrategy)
-        self.ui.runStrategy.clicked.connect(self.runStrategy)
+        self.ui.saveStrategy.clicked.connect(self.userSaveStrategy)
+        self.ui.runStrategy.clicked.connect(self.userRunStrategy)
 
     def updateCodeBlockSerchingcompleter(self):
         completer = QCompleter(findAllStrategys())
@@ -78,7 +78,7 @@ class MainWindowController(QMainWindow):
         content = loadStrategysFile("custom")
         self.codeBlock.setText(content)
 
-    def saveStrategy(self):
+    def userSaveStrategy(self):
         if self.ui.StrategySerchingBar.text() in findAllStrategys():
             saveStrategysFile(
                 self.ui.StrategySerchingBar.text(), self.codeBlock.text())
@@ -89,8 +89,9 @@ class MainWindowController(QMainWindow):
                 saveStrategysFile(userInput, self.codeBlock.text())
                 self.ui.StrategySerchingBar.setText(userInput)
 
-    def runStrategy(self):
-        pass
+    def userRunStrategy(self):
+        if self.ui.StrategySerchingBar.text() in findAllStrategys():
+            runStrategy(self.ui.StrategySerchingBar.text())
 
     def onTextChanged(self):
         searchTerm = self.ui.StrategySerchingBar.text()
