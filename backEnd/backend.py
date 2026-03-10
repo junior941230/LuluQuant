@@ -4,6 +4,7 @@ from backEnd.strategy import TradeRecorder
 import backtrader as bt
 import pandas as pd
 import os
+import textwrap
 
 
 def findAllStrategys():
