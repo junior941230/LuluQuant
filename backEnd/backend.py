@@ -1,11 +1,13 @@
 from FinMind.data import DataLoader
 import json
+import datetime
 from backEnd.strategyTemplate import TradeRecorder
 import backtrader as bt
 import pandas as pd
 import os
 import textwrap
 import importlib
+import sys
 
 
 def findAllStrategys():
@@ -77,7 +79,7 @@ def generateFullCode(targetFileName):
     print("成功生成 run.py，縮排已自動對齊。")
 
 
-def runStrategy(filePath):
+def runStrategy(ApiHandle, filePath):
     generateFullCode(filePath)
 
 
@@ -183,11 +185,28 @@ class FinMindApi:
         print("沒有找到快取資料，將從 API 取得")
         return None
 
+    def getAllTaiwanStockInfo(self):
+        if not os.path.exists("cache"):
+            os.makedirs("cache")
+        files = os.listdir("cache")
+        date = datetime.datetime.today().strftime("%Y-%m-%d")
+        fileName = f"{date}_TaiwanInfo.pkl"
+        if fileName in files:
+            print("當日以查詢")
+            df = pd.read_pickle("cache/" + fileName)
+            return df
+        else:
+            df = self.api.taiwan_stock_info()
+            df.to_pickle("cache/" + fileName)
+            return df
+
 
 def loadPluginComponent(modulePath, componentName):
     try:
-        # 動態匯入
-        module = importlib.import_module(modulePath)
+        if modulePath in sys.modules:
+            module = importlib.reload(sys.modules[modulePath])
+        else:
+            module = importlib.import_module(modulePath)
         # 取得指定組件
         component = getattr(module, componentName)
         return component

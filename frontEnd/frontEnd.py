@@ -17,6 +17,7 @@ class MainWindowController(QMainWindow):
         self.ApiHandle = Backtest()
         self.startDate = "1994-10-01"
         self.dateStrings = []  # 用於儲存當前數據的日期對應表
+        self.ApiHandle.getAllTaiwanStockInfo()
         self.candlePlotInit()
         self.codeBlockInit()
 
@@ -32,7 +33,6 @@ class MainWindowController(QMainWindow):
         )
         self.plotItem.showGrid(x=True, y=True)
 
-        self.ui.UserInStartBackTest.clicked.connect(self.runBackTest)
         self.group = QButtonGroup(self)
         self.group.addButton(self.ui.UserInDayCandleMode)
         self.group.addButton(self.ui.UserInWeekCandleMode)
@@ -91,17 +91,9 @@ class MainWindowController(QMainWindow):
 
     def userRunStrategy(self):
         if self.ui.StrategySerchingBar.text() in findAllStrategys():
-            runStrategy(self.ui.StrategySerchingBar.text())
-
-    def onTextChanged(self):
-        searchTerm = self.ui.StrategySerchingBar.text()
-        files = findAllStrategys()
-        if searchTerm in files:
-            content = loadStrategysFile(searchTerm)
-            if content != None:
-                self.codeBlock.setText(content)
-
-    def runBackTest(self):
+            saveStrategysFile(
+                self.ui.StrategySerchingBar.text(), self.codeBlock.text())
+            runStrategy(self.ApiHandle, self.ui.StrategySerchingBar.text())
         stockid = self.ui.UserInStockID.text()
         startDate = self.ui.UserInStartDate.text()
         endDate = self.ui.UserInEndDate.text()
@@ -114,6 +106,14 @@ class MainWindowController(QMainWindow):
         maxDropDown, tradeNum, tradingHistory = self.ApiHandle.processResult()
         strategyItem = StrategyItem(stockData, tradingHistory)
         self.plotItem.addItem(strategyItem)
+
+    def onTextChanged(self):
+        searchTerm = self.ui.StrategySerchingBar.text()
+        files = findAllStrategys()
+        if searchTerm in files:
+            content = loadStrategysFile(searchTerm)
+            if content != None:
+                self.codeBlock.setText(content)
 
     def graphPlot(self):
         self.plotItem.clear()
