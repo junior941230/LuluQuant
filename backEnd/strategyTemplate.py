@@ -1,4 +1,5 @@
 import backtrader as bt
+from backtrader.indicators import *
 
 
 class TradeRecorder(bt.Analyzer):

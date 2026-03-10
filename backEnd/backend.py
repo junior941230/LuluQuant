@@ -1,10 +1,11 @@
 from FinMind.data import DataLoader
 import json
-from backEnd.strategy import TradeRecorder
+from backEnd.strategyTemplate import TradeRecorder
 import backtrader as bt
 import pandas as pd
 import os
 import textwrap
+import importlib
 
 
 def findAllStrategys():
@@ -26,8 +27,7 @@ def saveStrategysFile(filePath, content):
 
 
 def generateFullCode(targetFileName):
-    templatePath = "backEnd/strategy.py"
-    # 動態組合路徑，例如傳入 "myAlgo.py"
+    templatePath = "backEnd/strategyTemplate.py"
     injectPath = os.path.join("strategy", targetFileName)
     separator = "# insertCode"
 
@@ -35,27 +35,46 @@ def generateFullCode(targetFileName):
     with open(templatePath, "r", encoding="utf-8") as f:
         templateContent = f.read()
 
-    # 2. 檢查標記並分割
     if separator not in templateContent:
         raise ValueError(f"在 {templatePath} 中找不到 {separator}")
 
-    parts = templateContent.split(separator)
-    frontPart = parts[0]
-    backPart = parts[1]
+    # 偵測標記行的縮排層級（這一步很重要！）
+    lines = templateContent.splitlines()
+    indent_prefix = ""
+    for line in lines:
+        if separator in line:
+            # 抓取該行在 separator 出現前的空白部分
+            indent_prefix = line[:line.find(separator)]
+            break
 
-    # 3. 讀取動態指定的檔案
+    # 2. 讀取注入內容
     if not os.path.exists(injectPath):
         print(f"錯誤：找不到檔案 {injectPath}")
         return None
 
     with open(injectPath, "r", encoding="utf-8") as f:
         injectCode = f.read()
-    tabbedCode = textwrap.indent(injectCode, "    ")
-    # 4. 組合並回傳
-    fullCode = f"{frontPart}\n{separator}\n{tabbedCode}\n{backPart}"
 
-    with open("strategy/run.py", "w+", encoding="utf-8") as f:
+    # --- 核心修復步驟 ---
+    # A. 先將注入內容裡的 Tab 全部轉為 4 個空格
+    injectCode = injectCode.replace("\t", "    ")
+
+    # B. 移除原本可能不對的縮排 (dedent)
+    injectCode = textwrap.dedent(injectCode)
+
+    # C. 根據模板標記所在的縮排，重新進行縮排 (使用偵測到的 indent_prefix)
+    tabbedCode = textwrap.indent(injectCode, indent_prefix)
+    # -------------------
+
+    # 3. 組合
+    # 我們用取代的方式，把 "# insertCode" 直接換成處理好的代碼
+    fullCode = templateContent.replace(separator, tabbedCode)
+
+    # 4. 寫入檔案
+    with open("strategy/run.py", "w", encoding="utf-8") as f:
         f.write(fullCode)
+
+    print("成功生成 run.py，縮排已自動對齊。")
 
 
 def runStrategy(filePath):
@@ -165,6 +184,20 @@ class FinMindApi:
         return None
 
 
+def loadPluginComponent(modulePath, componentName):
+    try:
+        # 動態匯入
+        module = importlib.import_module(modulePath)
+        # 取得指定組件
+        component = getattr(module, componentName)
+        return component
+    except ImportError as e:
+        print(f"無法載入模組: {modulePath}, 錯誤: {e}")
+    except AttributeError as e:
+        print(f"模組 {modulePath} 中找不到組件: {componentName}")
+    return None
+
+
 class Backtest(FinMindApi):
     def __init__(self):
         super().__init__()
@@ -176,7 +209,9 @@ class Backtest(FinMindApi):
         cerebro = bt.Cerebro()
         data = FinMindDataToBacktrader(data)
         cerebro.adddata(data)
-        # cerebro.addstrategy(RSI_WR_AND)
+
+        myTemplate = loadPluginComponent("strategy.run", "template")
+        cerebro.addstrategy(myTemplate)
         cerebro.addanalyzer(bt.analyzers.DrawDown, _name="drawdown")
         cerebro.addanalyzer(bt.analyzers.TradeAnalyzer, _name='tradeStats')
         cerebro.addanalyzer(TradeRecorder, _name='myRecorder')
