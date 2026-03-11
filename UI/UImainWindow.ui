@@ -273,7 +273,7 @@
      </attribute>
     </widget>
    </widget>
-   <widget class="QLineEdit" name="UserInStockID">
+   <widget class="QLineEdit" name="StockIDSerchingBar">
     <property name="geometry">
      <rect>
       <x>0</x>

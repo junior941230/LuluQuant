@@ -17,7 +17,15 @@ class MainWindowController(QMainWindow):
         self.ApiHandle = Backtest()
         self.startDate = "1994-10-01"
         self.dateStrings = []  # 用於儲存當前數據的日期對應表
-        self.ApiHandle.getAllTaiwanStockInfo()
+        self.stockInfo = self.ApiHandle.getAllTaiwanStockInfo()
+        self.ui.StockIDSerchingBar.setClearButtonEnabled(True)
+        searchStockAction = QAction(self.ui.StockIDSerchingBar)
+        searchStockAction.setIcon(QIcon.fromTheme("edit-find"))  # 使用系統內建圖示
+        self.ui.StockIDSerchingBar.addAction(
+            searchStockAction, QLineEdit.ActionPosition.LeadingPosition)
+        self.updateStockIDSerchingBarCompleter()
+        self.ui.StockIDSerchingBar.textChanged.connect(
+            self.onStockIDSerchingBarChanged)
         self.candlePlotInit()
         self.codeBlockInit()
 
@@ -62,7 +70,8 @@ class MainWindowController(QMainWindow):
         self.ui.StrategySerchingBar.addAction(
             searchAction, QLineEdit.ActionPosition.LeadingPosition)
         self.updateCodeBlockSerchingcompleter()
-        self.ui.StrategySerchingBar.textChanged.connect(self.onTextChanged)
+        self.ui.StrategySerchingBar.returnPressed.connect(
+            self.onStrategySerchingBarEnter)
         self.ui.createNewStrategy.clicked.connect(self.createNewStrategy)
         self.ui.saveStrategy.clicked.connect(self.userSaveStrategy)
         self.ui.runStrategy.clicked.connect(self.userRunStrategy)
@@ -72,6 +81,12 @@ class MainWindowController(QMainWindow):
         completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
         completer.setFilterMode(Qt.MatchFlag.MatchContains)
         self.ui.StrategySerchingBar.setCompleter(completer)
+
+    def updateStockIDSerchingBarCompleter(self):
+        completer = QCompleter(self.stockInfo['stock_id'].values)
+        completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
+        completer.setFilterMode(Qt.MatchFlag.MatchContains)
+        self.ui.StockIDSerchingBar.setCompleter(completer)
 
     def createNewStrategy(self):
         self.updateCodeBlockSerchingcompleter()
@@ -107,13 +122,18 @@ class MainWindowController(QMainWindow):
         strategyItem = StrategyItem(stockData, tradingHistory)
         self.plotItem.addItem(strategyItem)
 
-    def onTextChanged(self):
+    def onStrategySerchingBarEnter(self):
         searchTerm = self.ui.StrategySerchingBar.text()
         files = findAllStrategys()
         if searchTerm in files:
             content = loadStrategysFile(searchTerm)
             if content != None:
                 self.codeBlock.setText(content)
+
+    def onStockIDSerchingBarChanged(self):
+        searchTerm = self.ui.StockIDSerchingBar.text()
+        if searchTerm in self.stockInfo['stock_id'].values:
+            self.graphPlot()
 
     def graphPlot(self):
         self.plotItem.clear()
@@ -128,7 +148,7 @@ class MainWindowController(QMainWindow):
             period = "W"
         elif self.group.checkedButton() == self.ui.UserInMonthCandleMode:
             period = "M"
-        stockid = self.ui.UserInStockID.text()
+        stockid = self.ui.StockIDSerchingBar.text()
         endDate = self.ui.UserInEndDate.text()
         stockData = self.ApiHandle.getData(
             stockId=stockid, startDate=self.startDate, endDate=endDate)
