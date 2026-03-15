@@ -10,6 +10,20 @@ import importlib
 import sys
 
 
+def saveSettingFile(content):
+    with open("setting.json", "w+", encoding="utf-8") as f:
+        json.dump(content, f)
+
+
+def loadSettingFile():
+    if os.path.exists("setting.json"):
+        with open("setting.json", "r", encoding="utf-8") as f:
+            content = json.load(f)
+        return content
+    else:
+        return {}
+
+
 def findAllStrategys():
     files = os.listdir("strategy")
     return files

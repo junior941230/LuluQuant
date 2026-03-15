@@ -4,7 +4,7 @@ from PyQt6.QtGui import QAction, QIcon
 from PyQt6.QtCore import Qt
 import pyqtgraph as pg
 from frontEnd.graph import CandlestickItem, StrategyItem, DateAxisItem
-from backEnd.backend import Backtest, TransformPrice, findAllStrategys, loadStrategysFile, saveStrategysFile, runStrategy
+from backEnd.backend import *
 from frontEnd.strategyCodeBlock import PythonEditor
 from frontEnd.saveStrategy import SaveStrategyDialog
 
@@ -14,6 +14,8 @@ class MainWindowController(QMainWindow):
         super().__init__()
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
+        self.setting = loadSettingFile()
+        self.setSettingParams()
         self.ApiHandle = Backtest()
         self.startDate = "1994-10-01"
         self.dateStrings = []  # 用於儲存當前數據的日期對應表
@@ -24,10 +26,17 @@ class MainWindowController(QMainWindow):
         self.ui.StockIDSerchingBar.addAction(
             searchStockAction, QLineEdit.ActionPosition.LeadingPosition)
         self.updateStockIDSerchingBarCompleter()
-        self.ui.StockIDSerchingBar.textChanged.connect(
-            self.onStockIDSerchingBarChanged)
+        self.ui.StockIDSerchingBar.returnPressed.connect(
+            self.onStockIDSerchingBarEnter)
         self.candlePlotInit()
         self.codeBlockInit()
+
+    def setSettingParams(self):
+        self.ui.StockIDSerchingBar.setText(self.setting.get("StockId", ""))
+        self.ui.StrategySerchingBar.setText(self.setting.get("Strategy", ""))
+
+    def close(self):
+        saveSettingFile(self.setting)
 
     def candlePlotInit(self):
         self.dateAxis = DateAxisItem(
@@ -59,7 +68,8 @@ class MainWindowController(QMainWindow):
         ).sigMouseMoved, rateLimit=60, slot=self.mouseMoved)
 
         # 預先畫好標的歷史圖表
-        self.graphPlot()
+        if self.ui.StockIDSerchingBar.text() in self.stockInfo['stock_id'].values:
+            self.graphPlot()
 
     def codeBlockInit(self):
         self.codeBlock = PythonEditor()
@@ -109,7 +119,7 @@ class MainWindowController(QMainWindow):
             saveStrategysFile(
                 self.ui.StrategySerchingBar.text(), self.codeBlock.text())
             runStrategy(self.ApiHandle, self.ui.StrategySerchingBar.text())
-        stockid = self.ui.UserInStockID.text()
+        stockid = self.ui.StockIDSerchingBar.text()
         startDate = self.ui.UserInStartDate.text()
         endDate = self.ui.UserInEndDate.text()
         traderFund = int(self.ui.UserInFund.text())
@@ -129,11 +139,13 @@ class MainWindowController(QMainWindow):
             content = loadStrategysFile(searchTerm)
             if content != None:
                 self.codeBlock.setText(content)
+                self.setting["Strategy"] = searchTerm
 
-    def onStockIDSerchingBarChanged(self):
+    def onStockIDSerchingBarEnter(self):
         searchTerm = self.ui.StockIDSerchingBar.text()
         if searchTerm in self.stockInfo['stock_id'].values:
             self.graphPlot()
+            self.setting["StockId"] = searchTerm
 
     def graphPlot(self):
         self.plotItem.clear()
@@ -150,6 +162,7 @@ class MainWindowController(QMainWindow):
             period = "M"
         stockid = self.ui.StockIDSerchingBar.text()
         endDate = self.ui.UserInEndDate.text()
+        print(f"正在載入 {stockid} 從 {self.startDate} 到 {endDate} 的資料...")
         stockData = self.ApiHandle.getData(
             stockId=stockid, startDate=self.startDate, endDate=endDate)
         stockData = TransformPrice(stockData, period)

@@ -7,4 +7,6 @@ if __name__ == "__main__":
 
     window = MainWindowController()
     window.show()
-    sys.exit(app.exec())
+    a = app.exec()
+    window.close()
+    sys.exit(a)
