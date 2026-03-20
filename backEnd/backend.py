@@ -305,4 +305,10 @@ class Backtest(FinMindApi):
         drawdownData = firstStrategyResult.analyzers.drawdown.get_analysis()
         tradeAnalysis = firstStrategyResult.analyzers.tradeStats.get_analysis()
         finalTrades = firstStrategyResult.analyzers.myRecorder.get_analysis()
-        return drawdownData.max.drawdown, tradeAnalysis.total.closed, finalTrades
+        result = {
+            "maxDrawdown": drawdownData.max.drawdown,
+            "totalTrades": tradeAnalysis.get('total', {}).get('closed', 0),
+            "finalProfit": self.finalProfit,
+            "tradingHistory": finalTrades
+        }
+        return result

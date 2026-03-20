@@ -3,7 +3,7 @@ from PyQt6.QtWidgets import QMainWindow, QButtonGroup, QLineEdit, QCompleter, QD
 from PyQt6.QtGui import QAction, QIcon
 from PyQt6.QtCore import Qt
 import pyqtgraph as pg
-from frontEnd.graph import CandlestickItem, StrategyItem, DateAxisItem
+from frontEnd.graph import CandlestickItem, StrategyItem, DateAxisItem, showResult
 from backEnd.backend import *
 from frontEnd.strategyCodeBlock import PythonEditor
 from frontEnd.saveStrategy import SaveStrategyDialog
@@ -158,10 +158,11 @@ class MainWindowController(QMainWindow):
         self.ApiHandle.runSimulation(
             stockData, traderFund=traderFund, feeRate=fee)
         # 處理結果並輸出
-        maxDropDown, tradeNum, tradingHistory = self.ApiHandle.processResult()
-        print(f"最大回撤: {maxDropDown:.2%}, 交易次數: {tradeNum}")
-        # strategyItem = StrategyItem(stockData, tradingHistory)
-        # self.plotItem.addItem(strategyItem)
+        result = self.ApiHandle.processResult()
+        strategyItem = StrategyItem(stockData, result["tradingHistory"])
+        self.plotItem.addItem(strategyItem)
+        showResult(self.ui, stockData, traderFund,
+                   result)  # 顯示結果（可擴展為更詳細的報告或圖表）
 
     # 處理策略搜尋欄位的輸入
     def onStrategySerchingBarEnter(self):

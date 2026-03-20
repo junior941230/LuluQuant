@@ -45,6 +45,8 @@ class CandlestickItem(pg.GraphicsObject):
             closePrice = row['close']
             lowPrice = row['min']
             highPrice = row['max']
+            if openPrice * closePrice * lowPrice * highPrice == 0:
+                continue  # 跳過價格為零的 K 線，避免繪製異常
             if openPrice < closePrice:
                 p.setPen(pg.mkPen('r'))
                 p.setBrush(pg.mkBrush('r'))
@@ -90,7 +92,7 @@ class StrategyItem(pg.GraphicsObject):
     def generatePicture(self):
         """繪製所有進場和出場訊號標示"""
         p = QtGui.QPainter(self.picture)
-        p.setRenderHint(QtGui.QPainter.Antialiasing)
+        p.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing)
 
         for trade in self.tradingHistory:
             # 取得日期字串
@@ -101,7 +103,7 @@ class StrategyItem(pg.GraphicsObject):
             signalWidth = 1.5  # 稍微放寬寬度，視覺較清楚
             signalHeight = price / 200  # 根據股價位階調整
             padding = price / 200      # 與 K 線的間距
-
+            print(f"繪製交易訊號 - 進場: {dayIn}, 出場: {dayOut}, 價格: {price}")
             # 進場訊號繪製
             # 檢查日期是否存在於資料中，避免 KeyError
             if dayIn in self.dataFrame.index:
@@ -144,3 +146,22 @@ class StrategyItem(pg.GraphicsObject):
         if rect.isEmpty():
             return QtCore.QRectF(0, 0, 1, 1)
         return rect
+
+
+def showResult(UI, stockData, traderFund, result):
+    # 更改顏色
+    if result['finalProfit'] > 0:
+        UI.ind1.setStyleSheet("color: green")  # 最終盈虧 - 綠色
+    elif result['finalProfit'] < 0:
+        UI.ind1.setStyleSheet("color: red")  # 最終盈虧 - 紅色
+    print(traderFund, result['finalProfit'])
+    UI.ind1.setText(
+        f"最終盈虧: {result['finalProfit']:.2f} ({(result['finalProfit'] / traderFund - 1) * 100:.2f}%)")
+
+    UI.ind2.setStyleSheet("color: red")  # 最大回撤 - 紅色
+    UI.ind2.setText(f"最大回撤: {result['maxDrawdown']:.2%}")
+    UI.ind3.setText(f"交易次數: {result['totalTrades']}")
+    UI.ind4.setText(
+        f"勝率: {result['totalTrades'] and (result['finalProfit'] > 0) / result['totalTrades']:.2%}")
+    UI.ind5.setText(
+        f"獲利因子: {result['finalProfit'] / abs(result['finalProfit']) if result['finalProfit'] != 0 else 'N/A'}")
