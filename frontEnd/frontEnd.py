@@ -28,6 +28,8 @@ class MainWindowController(QMainWindow):
         self.updateStockIDSerchingBarCompleter()
         self.ui.StockIDSerchingBar.returnPressed.connect(
             self.onStockIDSerchingBarEnter)
+        self.ui.StockIDSerchingBar.editingFinished.connect(
+            self.onStockIDSerchingBarEnter)
         self.candlePlotInit()
         self.codeBlockInit()
 
@@ -81,6 +83,8 @@ class MainWindowController(QMainWindow):
             searchAction, QLineEdit.ActionPosition.LeadingPosition)
         self.updateCodeBlockSerchingcompleter()
         self.ui.StrategySerchingBar.returnPressed.connect(
+            self.onStrategySerchingBarEnter)
+        self.ui.StrategySerchingBar.editingFinished.connect(
             self.onStrategySerchingBarEnter)
         self.ui.createNewStrategy.clicked.connect(self.createNewStrategy)
         self.ui.saveStrategy.clicked.connect(self.userSaveStrategy)

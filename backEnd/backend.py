@@ -26,6 +26,9 @@ def loadSettingFile():
 
 def findAllStrategys():
     files = os.listdir("strategy")
+    for file in files:
+        if not file.endswith(".py"):
+            files.remove(file)
     return files
 
 
