@@ -5,11 +5,14 @@ import pandas as pd
 
 
 class DateAxisItem(pg.AxisItem):
+    """自定義日期軸，將數值索引轉換為日期字串顯示"""
+
     def __init__(self, dates, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.dates = dates  # 傳入格式化後的日期清單，例如 ['2023-01-01', '2023-01-02', ...]
 
     def tickStrings(self, values, scale, spacing):
+        """將 X 軸座標值轉換為對應的日期字串"""
         # values 是 pyqtgraph 傳入目前畫面可見的 X 軸座標值
         result = []
         for v in values:
@@ -22,6 +25,8 @@ class DateAxisItem(pg.AxisItem):
 
 
 class CandlestickItem(pg.GraphicsObject):
+    """K 線圖形物件，使用 QPicture 預先渲染以提升效能"""
+
     def __init__(self, data):
         pg.GraphicsObject.__init__(self)
         self.datas = data
@@ -29,12 +34,13 @@ class CandlestickItem(pg.GraphicsObject):
         self.generatePicture()
 
     def generatePicture(self):
+        """將所有 K 線繪製到 QPicture 中，實現高效率批量渲染"""
         # 使用 QPainter 將所有 K 線繪製到 QPicture 中以提升渲染效能
         p = QtGui.QPainter(self.picture)
         candleWidth = 0.5
 
         for i, row in self.datas.iterrows():
-            # 紅漲綠跌邏輯
+            # 紅漲綠跌邏輯：開盤價 < 收盤價則紅色（上漲），否則綠色（下跌）
             openPrice = row['open']
             closePrice = row['close']
             lowPrice = row['min']
@@ -59,15 +65,17 @@ class CandlestickItem(pg.GraphicsObject):
         p.end()
 
     def paint(self, p, *args):
-        # 每一幀只需繪製這張預先渲染好的 Picture
+        """每一幀只需繪製這張預先渲染好的 Picture"""
         p.drawPicture(0, 0, self.picture)
 
     def boundingRect(self):
-        # 必須回傳圖形的邊界，PyQtGraph 才能正確處理縮放
+        """必須回傳圖形的邊界，PyQtGraph 才能正確處理縮放和互動"""
         return QtCore.QRectF(self.picture.boundingRect())
 
 
 class StrategyItem(pg.GraphicsObject):
+    """交易策略標示物件，顯示進場和出場訊號"""
+
     def __init__(self, data, tradingHistory):
         pg.GraphicsObject.__init__(self)
         # 避免更動原始 data，使用 copy
@@ -80,8 +88,8 @@ class StrategyItem(pg.GraphicsObject):
         self.generatePicture()
 
     def generatePicture(self):
+        """繪製所有進場和出場訊號標示"""
         p = QtGui.QPainter(self.picture)
-
         p.setRenderHint(QtGui.QPainter.Antialiasing)
 
         for trade in self.tradingHistory:
@@ -93,6 +101,8 @@ class StrategyItem(pg.GraphicsObject):
             signalWidth = 1.5  # 稍微放寬寬度，視覺較清楚
             signalHeight = price / 200  # 根據股價位階調整
             padding = price / 200      # 與 K 線的間距
+
+            # 進場訊號繪製
             # 檢查日期是否存在於資料中，避免 KeyError
             if dayIn in self.dataFrame.index:
                 targetIn = self.dataFrame.loc[dayIn]
@@ -107,6 +117,7 @@ class StrategyItem(pg.GraphicsObject):
                                     targetIn["max"] + padding)
                 p.drawPolygon((p1, p2, p3))
 
+            # 出場訊號繪製
             if dayOut in self.dataFrame.index:
                 targetOut = self.dataFrame.loc[dayOut]
                 # 出場標示：正三角形（指向最低價下方）
@@ -119,14 +130,15 @@ class StrategyItem(pg.GraphicsObject):
                 p3 = QtCore.QPointF(barclose - signalWidth / 2,
                                     targetOut["min"] - padding)
                 p.drawPolygon((p1, p2, p3))
-                # print(dayOut, targetOut)
 
         p.end()
 
     def paint(self, p, *args):
+        """繪製預先渲染好的交易訊號"""
         p.drawPicture(0, 0, self.picture)
 
     def boundingRect(self):
+        """回傳邊界矩形，防止圖形為空時發生錯誤"""
         # 如果 picture 為空，提供一個預設的最小矩形防止報錯
         rect = QtCore.QRectF(self.picture.boundingRect())
         if rect.isEmpty():

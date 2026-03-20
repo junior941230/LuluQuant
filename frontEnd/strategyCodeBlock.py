@@ -4,6 +4,30 @@ from PyQt6.QtWidgets import QFrame
 
 
 class PythonEditor(QsciScintilla):
+    """
+    PythonEditor
+    一個基於 QsciScintilla 的 Python 程式碼編輯器，具有 VS Code 經典配色主題。
+    功能特性：
+        - VS Code 風格的語法高亮（關鍵字、註解、字串、數字等）
+        - 行號顯示與程式碼摺疊功能
+        - 自訂選擇顏色與光標樣式
+        - 縮排參考線與制表符設定
+        - UTF-8 編碼支持
+        - 無邊框設計以提供沈浸式編輯體驗
+    配色方案（VS Code Dark Theme）：
+        - 背景色：#1E1E1E（深灰）
+        - 前景色：#D4D4D4（淺灰）
+        - 關鍵字：#569CD6（亮藍）
+        - 註解：#6A9955（綠色）
+        - 字串：#CE9178（橘紅）
+        - 數字：#B5CEA8（淡綠）
+        - 函數名：#DCDCAA（淡黃）
+    參數：
+        parent (QWidget, optional): 父元件。預設為 None
+    屬性：
+        lexer (QsciLexerPython): Python 語法高亮器
+    """
+
     def __init__(self, parent=None):
         super().__init__(parent)
 

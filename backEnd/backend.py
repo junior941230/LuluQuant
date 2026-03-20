@@ -11,11 +11,13 @@ import sys
 
 
 def saveSettingFile(content):
+    """將設定內容儲存到 setting.json 檔案"""
     with open("setting.json", "w+", encoding="utf-8") as f:
         json.dump(content, f)
 
 
 def loadSettingFile():
+    """從 setting.json 載入設定，若檔案不存在則返回空字典"""
     if os.path.exists("setting.json"):
         with open("setting.json", "r", encoding="utf-8") as f:
             content = json.load(f)
@@ -25,6 +27,7 @@ def loadSettingFile():
 
 
 def findAllStrategys():
+    """列出 strategy 資料夾下所有的 Python 檔案"""
     files = os.listdir("strategy")
     for file in files:
         if not file.endswith(".py"):
@@ -33,6 +36,7 @@ def findAllStrategys():
 
 
 def loadStrategysFile(filePath):
+    """讀取指定的策略檔案內容"""
     filePath = "strategy/" + filePath
     with open(filePath, "r", encoding="utf-8") as f:
         fileContent = f.read()
@@ -40,12 +44,17 @@ def loadStrategysFile(filePath):
 
 
 def saveStrategysFile(filePath, content):
+    """將策略內容寫入指定的檔案"""
     filePath = "strategy/" + filePath
     with open(filePath, "w+", encoding="utf-8") as f:
         f.write(content)
 
 
 def generateFullCode(targetFileName):
+    """
+    根據模板和注入的程式碼生成完整的策略程式碼
+    處理縮排問題，確保注入的程式碼與模板對齐
+    """
     templatePath = "backEnd/strategyTemplate.py"
     injectPath = os.path.join("strategy", targetFileName)
     separator = "# insertCode"
@@ -85,8 +94,8 @@ def generateFullCode(targetFileName):
     tabbedCode = textwrap.indent(injectCode, indent_prefix)
     # -------------------
 
-    # 3. 組合
-    # 我們用取代的方式，把 "# insertCode" 直接換成處理好的代碼
+    # 3. 組合程式碼
+    # 用取代的方式，把 "# insertCode" 直接換成處理好的代碼
     fullCode = templateContent.replace(separator, tabbedCode)
 
     # 4. 寫入檔案
@@ -97,10 +106,12 @@ def generateFullCode(targetFileName):
 
 
 def runStrategy(ApiHandle, filePath):
+    """執行指定的策略檔案"""
     generateFullCode(filePath)
 
 
 def FinMindDataToBacktrader(rawDf):
+    """將 FinMind API 返回的資料轉換為 Backtrader 可用的格式"""
     stockData = rawDf.rename(columns={
         "max": "high",
         "min": "low",
@@ -117,6 +128,10 @@ def FinMindDataToBacktrader(rawDf):
 
 
 def TransformPrice(df, period):
+    """
+    將日線資料轉換為週線或月線資料
+    參數 period: "W" 表週線，"M" 表月線
+    """
     df['date'] = pd.to_datetime(df['date'])
     df = df.set_index('date')
     # 3. 轉換為每週資料 (Weekly)
@@ -151,7 +166,10 @@ def TransformPrice(df, period):
 
 
 class FinMindApi:
+    """處理 FinMind API 的初始化和資料取得，包含快取機制"""
+
     def __init__(self):
+        # 嘗試從 token.json 載入 API 令牌
         try:
             with open('token.json', 'r') as f:
                 tokenInfo = json.load(f)
@@ -167,10 +185,15 @@ class FinMindApi:
         print(f"目前 API 使用量: {self.api.api_usage}/{self.api.api_usage_limit}")
 
     def apiUsageCheck(self):
+        """檢查 API 使用量，若超過 90% 則發出警告"""
         if (self.api.api_usage >= self.api.api_usage_limit * 0.9):
             print("API 次數已達90%，請注意使用量！")
 
     def getData(self, stockId, startDate, endDate):
+        """
+        取得股票資料，優先從快取中查詢
+        若無快取則從 API 取得並儲存到本地快取
+        """
         if not os.path.exists("cache"):
             os.makedirs("cache")
         cachedData = self.findCacheData(stockId, startDate, endDate)
@@ -185,6 +208,10 @@ class FinMindApi:
         return rawDf
 
     def findCacheData(self, stockId, startDate, endDate):
+        """
+        在快取資料夾中搜尋符合條件的資料
+        快取資料的日期範圍必須涵蓋使用者要求的日期範圍
+        """
         files = os.listdir("cache")
         for file in files:
             endDateInFile = file.split("_")[-1].split(".")[0]
@@ -203,6 +230,7 @@ class FinMindApi:
         return None
 
     def getAllTaiwanStockInfo(self):
+        """取得所有台灣股票資訊，每日快取一次"""
         if not os.path.exists("cache"):
             os.makedirs("cache")
         files = os.listdir("cache")
@@ -219,6 +247,10 @@ class FinMindApi:
 
 
 def loadPluginComponent(modulePath, componentName):
+    """
+    動態載入指定模組中的組件
+    支援模組重新載入以獲得最新代碼
+    """
     try:
         if modulePath in sys.modules:
             module = importlib.reload(sys.modules[modulePath])
@@ -235,19 +267,29 @@ def loadPluginComponent(modulePath, componentName):
 
 
 class Backtest(FinMindApi):
+    """基於 Backtrader 的回測系統，繼承 FinMindApi 以獲得資料接口"""
+
     def __init__(self):
         super().__init__()
         self.result = None
 
-    # 修正：傳入動態參數
     def runSimulation(self, data, traderFund, feeRate):
+        """
+        執行回測模擬
+        參數: 
+            data - 股票資料
+            traderFund - 初始資金
+            feeRate - 手續費率
+        """
         self.traderFund = traderFund
         cerebro = bt.Cerebro()
         data = FinMindDataToBacktrader(data)
         cerebro.adddata(data)
 
+        # 動態載入策略模板
         myTemplate = loadPluginComponent("strategy.run", "template")
         cerebro.addstrategy(myTemplate)
+        # 添加分析器：計算回撤、交易統計、自訂交易記錄
         cerebro.addanalyzer(bt.analyzers.DrawDown, _name="drawdown")
         cerebro.addanalyzer(bt.analyzers.TradeAnalyzer, _name='tradeStats')
         cerebro.addanalyzer(TradeRecorder, _name='myRecorder')
@@ -258,6 +300,7 @@ class Backtest(FinMindApi):
         self.cerebro = cerebro
 
     def processResult(self):
+        """處理回測結果，提取最大回撤、交易統計和交易記錄"""
         firstStrategyResult = self.result[0]
         drawdownData = firstStrategyResult.analyzers.drawdown.get_analysis()
         tradeAnalysis = firstStrategyResult.analyzers.tradeStats.get_analysis()

@@ -16,6 +16,11 @@ class TradeRecorder(bt.Analyzer):
 
 class template(bt.Strategy):
     # insertCode
+
+    def log(self, txt, dt=None):
+        dt = dt or self.datas[0].datetime.date(0)
+        print(f'{dt.isoformat()}, {txt}')
+
     def notify_order(self, order):
         # 如果訂單狀態是已提交或已被券商接受，不需處理
         if order.status in [order.Submitted, order.Accepted]:
