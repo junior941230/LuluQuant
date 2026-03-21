@@ -1,7 +1,7 @@
 from UI.UImainWindow import Ui_MainWindow
 from PyQt6.QtWidgets import QMainWindow, QButtonGroup, QLineEdit, QCompleter, QDialog
 from PyQt6.QtGui import QAction, QIcon
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QDate
 import pyqtgraph as pg
 from frontEnd.graph import CandlestickItem, StrategyItem, DateAxisItem, showResult
 from backEnd.backend import *
@@ -39,6 +39,10 @@ class MainWindowController(QMainWindow):
     def setSettingParams(self):
         self.ui.StockIDSerchingBar.setText(self.setting.get("StockId", ""))
         self.ui.StrategySerchingBar.setText(self.setting.get("Strategy", ""))
+        self.ui.UserInStartDate.setDate(QDate.fromString(
+            self.setting.get("startDate", "2024-01-01"), "yyyy-M-d"))
+        self.ui.UserInEndDate.setDate(QDate.fromString(
+            self.setting.get("endDate", "2026-03-21"), "yyyy-M-d"))
 
     # 關閉視窗時保存設定
     def close(self):
@@ -149,6 +153,8 @@ class MainWindowController(QMainWindow):
         stockid = self.ui.StockIDSerchingBar.text()
         startDate = self.ui.UserInStartDate.text()
         endDate = self.ui.UserInEndDate.text()
+        self.setting["startDate"] = startDate  # 保存到設定
+        self.setting["endDate"] = endDate  # 保存到設定
         traderFund = int(self.ui.UserInFund.text())
         fee = float(self.ui.UserInFee.text()) * 0.01
         # 取得股票數據
