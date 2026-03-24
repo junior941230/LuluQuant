@@ -199,7 +199,7 @@ class FinMindApi:
         cachedData = self.findCacheData(stockId, startDate, endDate)
         if cachedData is not None:
             return cachedData
-        rawDf = self.api.taiwan_stock_daily(
+        rawDf = self.api.taiwan_stock_daily_adj(
             stock_id=stockId,
             start_date=startDate,
             end_date=endDate
@@ -218,7 +218,7 @@ class FinMindApi:
             startDateInFile = file.split("_")[1]
             if f"{stockId}" in file:
                 # 檔案的日期範圍包含了使用者要求的日期範圍，才算找到快取資料
-                if endDateInFile >= endDate and startDateInFile <= startDate:
+                if endDate >= endDateInFile and startDateInFile <= startDate:
                     cachedData = pd.read_pickle(f"cache/{file}")
                     print("找到快取資料，直接使用")
                     # 轉換 date 欄位為 datetime 格式，才能使用 between 方法過濾日期範圍
@@ -226,6 +226,10 @@ class FinMindApi:
                     filteredDf = cachedData[cachedData['date'].between(
                         startDate, endDate)]
                     return filteredDf
+                else:
+                    print(f"快取資料日期範圍不符,清除快取資料: {file}")
+                    os.remove(f"cache/{file}")
+
         print("沒有找到快取資料，將從 API 取得")
         return None
 
@@ -307,6 +311,7 @@ class Backtest(FinMindApi):
         finalTrades = firstStrategyResult.analyzers.myRecorder.get_analysis()
         result = {
             "maxDrawdown": drawdownData.max.drawdown,
+            "moneyDrawdown": drawdownData.max.moneydown,
             "totalTrades": tradeAnalysis.get('total', {}).get('closed', 0),
             "finalProfit": self.finalProfit,
             "tradingHistory": finalTrades

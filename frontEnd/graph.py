@@ -154,12 +154,12 @@ def showResult(UI, stockData, traderFund, result):
         UI.ind1.setStyleSheet("color: green")  # 最終盈虧 - 綠色
     elif result['finalProfit'] < 0:
         UI.ind1.setStyleSheet("color: red")  # 最終盈虧 - 紅色
-    print(traderFund, result['finalProfit'])
+    print(f"最大回撤: {result['moneyDrawdown']}")
     UI.ind1.setText(
         f"最終盈虧: {result['finalProfit']:.2f} ({(result['finalProfit'] / traderFund - 1) * 100:.2f}%)")
 
     UI.ind2.setStyleSheet("color: red")  # 最大回撤 - 紅色
-    UI.ind2.setText(f"最大回撤: {result['maxDrawdown']:.2%}")
+    UI.ind2.setText(f"最大回撤: {result['maxDrawdown'] / 100.0:.2%}")
     UI.ind3.setText(f"交易次數: {result['totalTrades']}")
     UI.ind4.setText(
         f"勝率: {result['totalTrades'] and (result['finalProfit'] > 0) / result['totalTrades']:.2%}")

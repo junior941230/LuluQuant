@@ -7,6 +7,7 @@ from frontEnd.graph import CandlestickItem, StrategyItem, DateAxisItem, showResu
 from backEnd.backend import *
 from frontEnd.strategyCodeBlock import PythonEditor
 from frontEnd.saveStrategy import SaveStrategyDialog
+from datetime import datetime
 
 
 # 主視窗控制器類別
@@ -58,7 +59,7 @@ class MainWindowController(QMainWindow):
         self.ui.chartLayout.addWidget(self.canvas)
         # 重要：在 addPlot 時指定 axisItems
         self.plotItem = self.canvas.addPlot(
-            title="股市數據模擬",
+            title=self.ui.StockIDSerchingBar.text(),
             axisItems={'bottom': self.dateAxis}
         )
         self.plotItem.showGrid(x=True, y=True)  # 顯示網格線
@@ -68,7 +69,8 @@ class MainWindowController(QMainWindow):
         self.group.addButton(self.ui.UserInDayCandleMode)
         self.group.addButton(self.ui.UserInWeekCandleMode)
         self.group.addButton(self.ui.UserInMonthCandleMode)
-        self.group.buttonClicked.connect(self.graphPlot)
+        self.group.buttonClicked.connect(lambda: self.graphPlot(
+            endDate=self.ui.UserInEndDate.text()))  # 連接按鈕事件
 
         # 建立十字準星
         self.vLine = pg.InfiniteLine(angle=90, movable=False, pen='y')
@@ -85,7 +87,8 @@ class MainWindowController(QMainWindow):
 
         # 預先畫好標的歷史圖表
         if self.ui.StockIDSerchingBar.text() in self.stockInfo['stock_id'].values:
-            self.graphPlot()
+            today = datetime.today().strftime('%Y-%m-%d')
+            self.graphPlot(endDate=today)
 
     # 初始化程式碼編輯區塊
     def codeBlockInit(self):
@@ -184,11 +187,12 @@ class MainWindowController(QMainWindow):
     def onStockIDSerchingBarEnter(self):
         searchTerm = self.ui.StockIDSerchingBar.text()
         if searchTerm in self.stockInfo['stock_id'].values:
-            self.graphPlot()  # 繪製圖表
+            today = datetime.today().strftime('%Y-%m-%d')
+            self.graphPlot(endDate=today)  # 繪製圖表
             self.setting["StockId"] = searchTerm  # 保存到設定
 
     # 繪製圖表
-    def graphPlot(self):
+    def graphPlot(self, endDate):
         self.plotItem.clear()  # 清空舊圖表
         # 重新加入十字準星與標籤 (因為 clear 會清空所有 Item)
         self.plotItem.addItem(self.vLine, ignoreBounds=True)
@@ -204,7 +208,6 @@ class MainWindowController(QMainWindow):
             period = "M"  # 月線
         # 取得使用者輸入
         stockid = self.ui.StockIDSerchingBar.text()
-        endDate = self.ui.UserInEndDate.text()
         print(f"正在載入 {stockid} 從 {self.startDate} 到 {endDate} 的資料...")
         # 取得股票數據
         stockData = self.ApiHandle.getData(

@@ -58,6 +58,9 @@ class Ui_MainWindow(object):
         self.UserInMonthCandleMode.setObjectName("UserInMonthCandleMode")
         self.CandleMode.addWidget(self.UserInMonthCandleMode)
         self.tabWidget.addTab(self.candleTab, "")
+        self.RsTab = QtWidgets.QWidget()
+        self.RsTab.setObjectName("RsTab")
+        self.tabWidget.addTab(self.RsTab, "")
         self.strategyTab = QtWidgets.QWidget()
         self.strategyTab.setObjectName("strategyTab")
         self.verticalLayoutWidget_3 = QtWidgets.QWidget(parent=self.strategyTab)
@@ -220,7 +223,7 @@ class Ui_MainWindow(object):
         MainWindow.setStatusBar(self.statusbar)
 
         self.retranslateUi(MainWindow)
-        self.tabWidget.setCurrentIndex(2)
+        self.tabWidget.setCurrentIndex(1)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
     def retranslateUi(self, MainWindow):
@@ -230,6 +233,7 @@ class Ui_MainWindow(object):
         self.UserInWeekCandleMode.setText(_translate("MainWindow", "周"))
         self.UserInMonthCandleMode.setText(_translate("MainWindow", "月"))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.candleTab), _translate("MainWindow", "線圖"))
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.RsTab), _translate("MainWindow", "RS"))
         self.label_6.setText(_translate("MainWindow", "選擇策略:"))
         self.createNewStrategy.setText(_translate("MainWindow", "新增策略"))
         self.saveStrategy.setText(_translate("MainWindow", "儲存策略"))
