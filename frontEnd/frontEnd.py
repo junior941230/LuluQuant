@@ -3,7 +3,7 @@ from PyQt6.QtWidgets import QMainWindow, QButtonGroup, QLineEdit, QCompleter, QD
 from PyQt6.QtGui import QAction, QIcon
 from PyQt6.QtCore import Qt, QDate
 import pyqtgraph as pg
-from frontEnd.graph import CandlestickItem, StrategyItem, DateAxisItem, showResult
+from frontEnd.graph import *
 from backEnd.backend import *
 from frontEnd.strategyCodeBlock import PythonEditor
 from frontEnd.saveStrategy import SaveStrategyDialog
@@ -35,6 +35,7 @@ class MainWindowController(QMainWindow):
             self.onStockIDSerchingBarEnter)
         self.candlePlotInit()  # 初始化蠟燭圖
         self.codeBlockInit()  # 初始化程式碼區塊
+        self.RsPlotInit()  # 初始化相對強弱線圖
 
     # 設定參數值
     def setSettingParams(self):
@@ -52,43 +53,43 @@ class MainWindowController(QMainWindow):
     # 初始化蠟燭圖表
     def candlePlotInit(self):
         # 建立日期軸
-        self.dateAxis = DateAxisItem(
+        self.CandledateAxis = DateAxisItem(
             dates=self.dateStrings, orientation='bottom')
         # 建立繪圖畫布
-        self.canvas = pg.GraphicsLayoutWidget()
-        self.ui.chartLayout.addWidget(self.canvas)
+        canvas = pg.GraphicsLayoutWidget()
+        self.ui.chartLayout.addWidget(canvas)
         # 重要：在 addPlot 時指定 axisItems
-        self.plotItem = self.canvas.addPlot(
+        self.candlePlotItem = canvas.addPlot(
             title=self.ui.StockIDSerchingBar.text(),
-            axisItems={'bottom': self.dateAxis}
+            axisItems={'bottom': self.CandledateAxis}
         )
-        self.plotItem.showGrid(x=True, y=True)  # 顯示網格線
+        self.candlePlotItem.showGrid(x=True, y=True)  # 顯示網格線
 
         # 建立時間週期選擇按鈕群組
         self.group = QButtonGroup(self)
         self.group.addButton(self.ui.UserInDayCandleMode)
         self.group.addButton(self.ui.UserInWeekCandleMode)
         self.group.addButton(self.ui.UserInMonthCandleMode)
-        self.group.buttonClicked.connect(lambda: self.graphPlot(
+        self.group.buttonClicked.connect(lambda: self.graphCandlePlot(
             endDate=self.ui.UserInEndDate.text()))  # 連接按鈕事件
 
         # 建立十字準星
         self.vLine = pg.InfiniteLine(angle=90, movable=False, pen='y')
         self.hLine = pg.InfiniteLine(angle=0, movable=False, pen='y')
-        self.plotItem.addItem(self.vLine, ignoreBounds=True)
-        self.plotItem.addItem(self.hLine, ignoreBounds=True)
+        self.candlePlotItem.addItem(self.vLine, ignoreBounds=True)
+        self.candlePlotItem.addItem(self.hLine, ignoreBounds=True)
         # 建立滑鼠追蹤標籤
         self.label = pg.TextItem(anchor=(0, 1), color='y', fill=(0, 0, 0, 100))
-        self.plotItem.addItem(self.label, ignoreBounds=True)
+        self.candlePlotItem.addItem(self.label, ignoreBounds=True)
 
         # 設定滑鼠移動監聽 (使用 SignalProxy 避免過度頻繁觸發)
-        self.proxy = pg.SignalProxy(self.plotItem.scene(
+        self.proxy = pg.SignalProxy(self.candlePlotItem.scene(
         ).sigMouseMoved, rateLimit=60, slot=self.mouseMoved)
 
         # 預先畫好標的歷史圖表
         if self.ui.StockIDSerchingBar.text() in self.stockInfo['stock_id'].values:
             today = datetime.today().strftime('%Y-%m-%d')
-            self.graphPlot(endDate=today)
+            self.graphCandlePlot(endDate=today)
 
     # 初始化程式碼編輯區塊
     def codeBlockInit(self):
@@ -110,6 +111,24 @@ class MainWindowController(QMainWindow):
         self.ui.createNewStrategy.clicked.connect(self.createNewStrategy)
         self.ui.saveStrategy.clicked.connect(self.userSaveStrategy)
         self.ui.runStrategy.clicked.connect(self.userRunStrategy)
+
+    def RsPlotInit(self):
+        # 建立日期軸
+        self.RSdateAxis = DateAxisItem(
+            dates=self.dateStrings, orientation='bottom')
+        # 建立繪圖畫布
+        canvas = pg.GraphicsLayoutWidget()
+        self.ui.RscharLayout.addWidget(canvas)
+        # 重要：在 addPlot 時指定 axisItems
+        self.RsplotItem = canvas.addPlot(
+            title="RS Rating",
+            axisItems={'bottom': self.RSdateAxis}
+        )
+        self.RsplotItem.showGrid(x=True, y=True)  # 顯示網格線
+
+        # 預先畫好標的歷史圖表
+        if self.ui.StockIDSerchingBar.text() in self.stockInfo['stock_id'].values:
+            self.graphRsPlot()
 
     # 更新程式碼區塊搜尋欄位的自動完成列表
     def updateCodeBlockSerchingcompleter(self):
@@ -169,7 +188,7 @@ class MainWindowController(QMainWindow):
         # 處理結果並輸出
         result = self.ApiHandle.processResult()
         strategyItem = StrategyItem(stockData, result["tradingHistory"])
-        self.plotItem.addItem(strategyItem)
+        self.candlePlotItem.addItem(strategyItem)
         showResult(self.ui, stockData, traderFund,
                    result)  # 顯示結果（可擴展為更詳細的報告或圖表）
 
@@ -188,16 +207,29 @@ class MainWindowController(QMainWindow):
         searchTerm = self.ui.StockIDSerchingBar.text()
         if searchTerm in self.stockInfo['stock_id'].values:
             today = datetime.today().strftime('%Y-%m-%d')
-            self.graphPlot(endDate=today)  # 繪製圖表
+            self.graphCandlePlot(endDate=today)  # 繪製圖表
             self.setting["StockId"] = searchTerm  # 保存到設定
 
+    def graphRsPlot(self):
+        self.RsplotItem.clear()  # 清空舊圖表
+        stockid = self.ui.StockIDSerchingBar.text()
+        df = getRsRating()
+
+        if stockid in df['stock_id'].values:
+            fillterDf = df[df["stock_id"] == stockid]
+            self.dateStrings = fillterDf['date'].dt.strftime(
+                '%Y-%m-%d').tolist()
+            self.RSdateAxis.dates = self.dateStrings
+            rsLineGraph = RsLineGraph(fillterDf)
+            self.RsplotItem.addItem(rsLineGraph)
+
     # 繪製圖表
-    def graphPlot(self, endDate):
-        self.plotItem.clear()  # 清空舊圖表
+    def graphCandlePlot(self, endDate):
+        self.candlePlotItem.clear()  # 清空舊圖表
         # 重新加入十字準星與標籤 (因為 clear 會清空所有 Item)
-        self.plotItem.addItem(self.vLine, ignoreBounds=True)
-        self.plotItem.addItem(self.hLine, ignoreBounds=True)
-        self.plotItem.addItem(self.label, ignoreBounds=True)
+        self.candlePlotItem.addItem(self.vLine, ignoreBounds=True)
+        self.candlePlotItem.addItem(self.hLine, ignoreBounds=True)
+        self.candlePlotItem.addItem(self.label, ignoreBounds=True)
         # 根據按鈕選擇決定週期
         period = ""
         if self.group.checkedButton() == self.ui.UserInDayCandleMode:
@@ -217,17 +249,18 @@ class MainWindowController(QMainWindow):
         stockData = stockData.reset_index(drop=True)
         # 更新 DateAxisItem 裡面的日期清單
         self.dateStrings = stockData['date'].dt.strftime('%Y-%m-%d').tolist()
-        self.dateAxis.dates = self.dateStrings
+        self.CandledateAxis.dates = self.dateStrings
 
         # 建立蠟燭圖表項目並加入到圖表
         candlestickItem = CandlestickItem(stockData)
-        self.plotItem.addItem(candlestickItem)
+        self.candlePlotItem.addItem(candlestickItem)
 
     # 處理滑鼠移動事件
     def mouseMoved(self, evt):
         pos = evt[0]  # 取得滑鼠座標
-        if self.plotItem.sceneBoundingRect().contains(pos):
-            mousePoint = self.plotItem.vb.mapSceneToView(pos)  # 轉換座標到數據座標
+        if self.candlePlotItem.sceneBoundingRect().contains(pos):
+            mousePoint = self.candlePlotItem.vb.mapSceneToView(
+                pos)  # 轉換座標到數據座標
             index = int(mousePoint.x())
 
             # 檢查索引是否在資料範圍內

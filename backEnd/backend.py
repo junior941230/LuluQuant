@@ -8,6 +8,8 @@ import os
 import textwrap
 import importlib
 import sys
+import requests
+import io
 
 
 def saveSettingFile(content):
@@ -163,6 +165,26 @@ def TransformPrice(df, period):
         })
 
     return df.reset_index()
+
+
+def getRsRating():
+    print(f"正在取得RS 評級資料...")
+    if not os.path.exists("cache"):
+        os.makedirs("cache")
+    date = datetime.datetime.today().strftime("%Y-%m-%d")
+    fileName = f"{date}_RSRating.pkl"
+    files = os.listdir("cache")
+    if fileName in files:
+        print("當日以查詢")
+        df = pd.read_pickle("cache/" + fileName)
+        df['date'] = pd.to_datetime(df['date'], errors='coerce')
+        return df
+    else:
+        response = requests.get(f"http://api.9tsai.xyz/rsRating")
+        df = pd.read_pickle(io.BytesIO(response.content))
+        pd.to_pickle(df, f"cache/{fileName}")
+        df['date'] = pd.to_datetime(df['date'], errors='coerce')
+        return df
 
 
 class FinMindApi:
