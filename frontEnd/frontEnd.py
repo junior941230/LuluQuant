@@ -21,6 +21,7 @@ class MainWindowController(QMainWindow):
         self.ApiHandle = Backtest()  # 初始化回測物件
         self.startDate = "1994-10-01"  # 預設起始日期
         self.dateStrings = []  # 用於儲存當前數據的日期對應表
+
         self.stockInfo = self.ApiHandle.getAllTaiwanStockInfo()  # 取得台灣股票資訊
         self.ui.StockIDSerchingBar.setClearButtonEnabled(True)  # 啟用搜尋欄位清除按鈕
         searchStockAction = QAction(self.ui.StockIDSerchingBar)
@@ -88,8 +89,8 @@ class MainWindowController(QMainWindow):
 
         # 預先畫好標的歷史圖表
         if self.ui.StockIDSerchingBar.text() in self.stockInfo['stock_id'].values:
-            today = datetime.today().strftime('%Y-%m-%d')
-            self.graphCandlePlot(endDate=today)
+            latestTradingDay = self.ApiHandle.getLatestTradingDate()
+            self.graphCandlePlot(endDate=latestTradingDay)
 
     # 初始化程式碼編輯區塊
     def codeBlockInit(self):
@@ -122,9 +123,15 @@ class MainWindowController(QMainWindow):
         # 重要：在 addPlot 時指定 axisItems
         self.RsplotItem = canvas.addPlot(
             title="RS Rating",
-            axisItems={'bottom': self.RSdateAxis}
+            axisItems={'bottom': self.RSdateAxis, 'left': pg.AxisItem(
+                orientation='left'), 'right': pg.AxisItem(orientation='right')},
         )
         self.RsplotItem.showGrid(x=True, y=True)  # 顯示網格線
+        self.RsplotItem.showAxis("right")
+        self.RsplotItem.showAxis("left")
+        # 設定左右軸標題
+        self.RsplotItem.getAxis("left").setLabel("RS值")
+        self.RsplotItem.getAxis("right").setLabel("指數")
 
         # 預先畫好標的歷史圖表
         if self.ui.StockIDSerchingBar.text() in self.stockInfo['stock_id'].values:
@@ -206,24 +213,53 @@ class MainWindowController(QMainWindow):
     def onStockIDSerchingBarEnter(self):
         searchTerm = self.ui.StockIDSerchingBar.text()
         if searchTerm in self.stockInfo['stock_id'].values:
-            today = datetime.today().strftime('%Y-%m-%d')
-            self.graphCandlePlot(endDate=today)  # 繪製圖表
+            latestTradingDay = self.ApiHandle.getLatestTradingDate()
+            self.graphCandlePlot(endDate=latestTradingDay)  # 繪製
             self.setting["StockId"] = searchTerm  # 保存到設定
 
+    # 繪製相對強弱線圖
     def graphRsPlot(self):
         self.RsplotItem.clear()  # 清空舊圖表
         stockid = self.ui.StockIDSerchingBar.text()
+        latestTradingDay = self.ApiHandle.getLatestTradingDate()
         df = getRsRating()
+        # 取一年內的資料
+        oneYearAgo = datetime.strptime(
+            latestTradingDay, "%Y-%m-%d") - pd.DateOffset(years=1)
+        df = df[df["date"] >= oneYearAgo]
 
         if stockid in df['stock_id'].values:
             fillterDf = df[df["stock_id"] == stockid]
+            fillterDf = fillterDf.reset_index(drop=True)
+
+            TAIEXdataFrame = self.ApiHandle.getData(
+                "TAIEX", self.startDate, latestTradingDay)  # 取得台灣加權指數數據
+            TAIEXdataFrame = TAIEXdataFrame[TAIEXdataFrame["date"].isin(
+                fillterDf["date"])]
+            TAIEXdataFrame = TAIEXdataFrame.reset_index(drop=True)
+
             self.dateStrings = fillterDf['date'].dt.strftime(
                 '%Y-%m-%d').tolist()
             self.RSdateAxis.dates = self.dateStrings
-            rsLineGraph = RsLineGraph(fillterDf)
-            self.RsplotItem.addItem(rsLineGraph)
 
-    # 繪製圖表
+            self.vb2 = pg.ViewBox()
+            self.RsplotItem.scene().addItem(self.vb2)
+            self.RsplotItem.getAxis('right').linkToView(self.vb2)
+            self.vb2.setXLink(self.RsplotItem)
+            self.RsplotItem.plot(
+                fillterDf["rsRating"], pen=pg.mkPen("#ffd166", width=2))
+            curve2 = pg.PlotCurveItem(
+                TAIEXdataFrame["close"].to_numpy(), pen=pg.mkPen("#da2828", width=2))
+            self.vb2.addItem(curve2)
+            self.vb2.enableAutoRange(axis=pg.ViewBox.YAxis, enable=True)
+            self.vb2.autoRange(padding=0.0)
+
+            def updateViews():
+                self.vb2.setGeometry(self.RsplotItem.vb.sceneBoundingRect())
+
+            self.RsplotItem.vb.sigResized.connect(updateViews)
+
+
     def graphCandlePlot(self, endDate):
         self.candlePlotItem.clear()  # 清空舊圖表
         # 重新加入十字準星與標籤 (因為 clear 會清空所有 Item)

@@ -205,6 +205,7 @@ class FinMindApi:
         self.apiUsageCheck()
         print("FinMind API 初始化完成")
         print(f"目前 API 使用量: {self.api.api_usage}/{self.api.api_usage_limit}")
+        self.latestTradingDay = None
 
     def apiUsageCheck(self):
         """檢查 API 使用量，若超過 90% 則發出警告"""
@@ -270,6 +271,19 @@ class FinMindApi:
             df = self.api.taiwan_stock_info()
             df.to_pickle("cache/" + fileName)
             return df
+
+    def getLatestTradingDate(self):
+        """取得最新的交易日期"""
+        if self.latestTradingDay is None:
+            today = datetime.datetime.today().strftime("%Y-%m-%d")
+            dateDf = self.api.taiwan_stock_trading_date(end_date=today)
+            self.latestTradingDay = dateDf.tail(1)["date"].iloc[0]
+            # 如果在下午三點前就回傳前一天的日期，確保不會在交易日當天就從 API 取得資料，避免資料不完整
+            currentTime = datetime.datetime.now().time()
+            if currentTime < datetime.time(15, 0):
+                self.latestTradingDay = dateDf.tail(2)["date"].iloc[0]
+
+        return self.latestTradingDay
 
 
 def loadPluginComponent(modulePath, componentName):
